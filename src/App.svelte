@@ -2,6 +2,7 @@
   import DisplayArea from './components/DisplayArea.svelte';
   import ControlPanel from './components/ControlPanel.svelte';
   import { config as configStore } from './stores';
+  import { makeConfig } from './make-config';
 
   export let localConfig;
   const config = makeConfig(localConfig);
