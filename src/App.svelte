@@ -1,9 +1,12 @@
 <script>
   import DisplayArea from './components/DisplayArea.svelte';
   import ControlPanel from './components/ControlPanel.svelte';
+  import { config as configStore } from './stores';
 
   export let localConfig;
-  console.log(localConfig);
+  const config = makeConfig(localConfig);
+
+  configStore.set(config);
 </script>
 
 <svelte:head>
