@@ -2,11 +2,14 @@
   import { config as configStore } from '../stores';
   import { Dropdown } from 'carbon-components-svelte';
   import DeviceLayout from './DeviceLayout.svelte';
+  import MapView from './MapView.svelte';
 
   const INITIAL_DEVICE_INDEX = 0;
+  const INITIAL_STYLE_INDEX = 0;
 
   let devices;
   let styles;
+
   configStore.subscribe(value => {
     ({ devices } = value);
     ({ styles } = value);
@@ -14,6 +17,7 @@
 
   let width = devices[INITIAL_DEVICE_INDEX].width;
   let height = devices[INITIAL_DEVICE_INDEX].height;
+  let style = styles[INITIAL_STYLE_INDEX];
 
   const deviceDropdownItems = devices.map(device => {
     return { id: device.id, text: device.name };
@@ -25,8 +29,8 @@
 
   const handleSetStyle = e => {
     const { selectedId } = e.detail;
-    const style = styles.find(s => s.id === selectedId);
-    console.log(style);
+    const nextStyle = styles.find(s => s.id === selectedId);
+    style = nextStyle;
   };
 
   const handleSetDeviceSize = e => {
@@ -56,7 +60,14 @@
       />
     </div>
   </div>
-  <DeviceLayout {height} {width} />
+  <div class="device-container">
+    <DeviceLayout
+      {height}
+      {width}
+      children={MapView}
+      childProps={{ id: style.id, url: style.url }}
+    />
+  </div>
 </div>
 
 <style>
@@ -68,9 +79,15 @@
     justify-content: center;
   }
 
+  .device-container {
+    /* Accounts for space at the top taken by dropdowns */
+    margin-top: 120px;
+  }
+
   .dropdown-container {
     position: absolute;
     top: 36px;
+    height: 36px;
   }
 
   .dropdown {

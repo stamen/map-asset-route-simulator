@@ -1,8 +1,8 @@
 <script>
-  import MapView from './MapView.svelte';
-
   export let height;
   export let width;
+  export let children;
+  export let childProps;
 </script>
 
 <div class="layout" style={`height:${height}px; width:${width}px`}>
@@ -10,7 +10,7 @@
     class="outline"
     style={`height:${height + 40}px; width:${width + 40}px`}
   />
-  <MapView />
+  <svelte:component this={children} {...childProps} />
 </div>
 
 <style>

@@ -4,6 +4,9 @@
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
 
+  export let id;
+  export let url;
+
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
 
@@ -13,8 +16,9 @@
 
   onMount(() => {
     map = new mapboxgl.Map({
+      id,
       container: 'map-viewer',
-      style: 'mapbox://styles/mapbox/streets-v11',
+      style: url,
       preserveDrawingBuffer: true,
     });
   });
@@ -24,6 +28,12 @@
       map.remove();
     }
   });
+
+  $: {
+    if (map && url) {
+      map.setStyle(url);
+    }
+  }
 
   $: {
     if (map) {
