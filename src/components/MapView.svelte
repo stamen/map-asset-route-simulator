@@ -24,6 +24,20 @@
       map.remove();
     }
   });
+
+  $: {
+    if (map) {
+      map.once('render', () => {
+        const container = document.getElementById('map-viewer');
+        if (container) {
+          const resizeObserver = new ResizeObserver(() => {
+            map.resize({ resize: true });
+          });
+          resizeObserver.observe(container);
+        }
+      });
+    }
+  }
 </script>
 
 <div id="map-viewer" class="map" />
