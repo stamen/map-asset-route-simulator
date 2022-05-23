@@ -4,7 +4,7 @@
   import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.min.js';
   import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
   import { fetchDirections } from '../fetch-directions';
-  import { config as configStore } from '../stores';
+  import { config as configStore, route as routeStore } from '../stores';
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
@@ -12,8 +12,8 @@
   let geocoderA;
   let geocoderB;
 
-  let centerA;
-  let centerB;
+  let centerA = null;
+  let centerB = null;
 
   const handleGeocoderResult = value => {
     const center = {
@@ -21,6 +21,13 @@
       lng: value.center[0],
     };
     return center;
+  };
+
+  const submitRequest = async () => {
+    const response = await fetchDirections(centerA, centerB);
+    if (response) {
+      routeStore.set({ locA: centerA, locB: centerB, response });
+    }
   };
 
   onMount(() => {
@@ -36,9 +43,17 @@
     geocoderA.addTo('#geocoderA');
     geocoderB.addTo('#geocoderB');
 
+    geocoderA.on('clear', e => {
+      centerA = null;
+    });
     geocoderA.on('result', e => {
-      const center = handleGeocoderResult(e.result);
-      console.log(center);
+      centerA = handleGeocoderResult(e.result);
+    });
+    geocoderB.on('result', e => {
+      centerB = handleGeocoderResult(e.result);
+    });
+    geocoderB.on('clear', e => {
+      centerB = null;
     });
   });
 </script>
@@ -59,7 +74,7 @@
   <button
     class="button"
     disabled={!centerA || !centerB}
-    on:click={() => console.log('clicko')}>Submit</button
+    on:click={submitRequest}>Submit</button
   >
 </div>
 
