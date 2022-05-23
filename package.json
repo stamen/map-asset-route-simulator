@@ -26,6 +26,7 @@
     "svelte": "^3.0.0"
   },
   "dependencies": {
+    "@mapbox/mapbox-gl-geocoder": "^5.0.1",
     "carbon-components-svelte": "^0.64.0",
     "mapbox-gl": "^1.13.1",
     "sirv-cli": "^1.0.0"

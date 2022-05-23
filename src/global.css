@@ -54,10 +54,12 @@ button {
   background-color: #f4f4f4;
   outline: none;
   border-radius: 4px;
+  cursor: pointer;
 }
 
 button:disabled {
   color: #999;
+  cursor: default;
 }
 
 button:not(:disabled):active {
