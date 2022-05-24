@@ -12,48 +12,89 @@
   let geocoderA;
   let geocoderB;
 
+  let locationAText = '';
+  let locationBText = '';
+
   let centerA = null;
   let centerB = null;
+  routeStore.subscribe(value => {
+    if (value && value.hasOwnProperty('locationA')) {
+      const { locationA, locationB } = value;
+      const { text: textA, ...nextCenterA } = locationA;
+      locationAText = textA;
+      centerA = nextCenterA;
+
+      const { text: textB, ...nextCenterB } = locationB;
+      locationBText = textB;
+      centerB = nextCenterB;
+    }
+  });
+
+  const submitRequest = async () => {
+    const response = await fetchDirections(centerA, centerB);
+    // TODO handle bad response
+    if (response) {
+      routeStore.set({
+        locationA: { ...centerA, text: locationAText },
+        locationB: { ...centerB, text: locationBText },
+        response,
+      });
+    }
+  };
+
+  // Submit a directions require on initial mount if possible
+  if (centerA && centerB) {
+    submitRequest();
+  }
 
   const handleGeocoderResult = value => {
+    const { place_name: placeName } = value;
     const center = {
       lat: value.center[1],
       lng: value.center[0],
     };
-    return center;
-  };
-
-  const submitRequest = async () => {
-    const response = await fetchDirections(centerA, centerB);
-    if (response) {
-      routeStore.set({ locA: centerA, locB: centerB, response });
-    }
+    return { center, placeName };
   };
 
   onMount(() => {
     geocoderA = new MapboxGeocoder({
       accessToken: mapboxGlAccessToken,
       mapboxgl: mapboxgl,
+      placeholder: locationAText,
     });
     geocoderB = new MapboxGeocoder({
       accessToken: mapboxGlAccessToken,
       mapboxgl: mapboxgl,
+      placeholder: locationBText,
     });
 
     geocoderA.addTo('#geocoderA');
     geocoderB.addTo('#geocoderB');
 
-    geocoderA.on('clear', e => {
-      centerA = null;
-    });
+    const [inputA, inputB] = document.getElementsByClassName(
+      'mapboxgl-ctrl-geocoder--input'
+    );
+
+    inputA.value = locationAText;
+    inputB.value = locationBText;
+
     geocoderA.on('result', e => {
-      centerA = handleGeocoderResult(e.result);
+      const { center, placeName } = handleGeocoderResult(e.result);
+      centerA = center;
+      locationAText = placeName;
     });
     geocoderB.on('result', e => {
-      centerB = handleGeocoderResult(e.result);
+      const { center, placeName } = handleGeocoderResult(e.result);
+      centerB = center;
+      locationBText = placeName;
+    });
+    geocoderA.on('clear', e => {
+      centerA = null;
+      locationAText = '';
     });
     geocoderB.on('clear', e => {
       centerB = null;
+      locationBText = '';
     });
   });
 </script>

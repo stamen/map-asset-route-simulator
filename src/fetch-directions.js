@@ -10,7 +10,7 @@ const fetchDirections = async (locA, locB) => {
   try {
     // Mapbox API limit at 100,000 requests for free tier
     const response = await fetch(
-      `https://api.mapbox.com/directions/v5/mapbox/driving/${lngA},${latA};${lngB},${latB}?geometries=geojson&access_token=${mapboxGlAccessToken}`
+      `https://api.mapbox.com/directions/v5/mapbox/driving/${lngA},${latA};${lngB},${latB}?geometries=geojson&steps=true&access_token=${mapboxGlAccessToken}`
     );
     data = await response.json();
   } catch (e) {
