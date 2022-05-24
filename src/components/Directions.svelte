@@ -9,43 +9,33 @@
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
 
-  let geocoderA;
-  let geocoderB;
+  // TODO allow adding a geocoder
+  let geocoders = [
+    { id: 'a', center: null, locationText: '' },
+    { id: 'b', center: null, locationText: '' },
+  ];
 
-  let locationAText = '';
-  let locationBText = '';
-
-  let centerA = null;
-  let centerB = null;
   routeStore.subscribe(value => {
-    if (value && value.hasOwnProperty('locationA')) {
-      const { locationA, locationB } = value;
-      const { text: textA, ...nextCenterA } = locationA;
-      locationAText = textA;
-      centerA = nextCenterA;
-
-      const { text: textB, ...nextCenterB } = locationB;
-      locationBText = textB;
-      centerB = nextCenterB;
+    if (value && value.hasOwnProperty('locations')) {
+      geocoders = value.locations;
     }
   });
 
+  const hasMinimumLocations = () => {
+    return geocoders.map(g => g.center).filter(Boolean).length >= 2;
+  };
+
   const submitRequest = async () => {
-    const response = await fetchDirections(centerA, centerB);
+    const centers = geocoders.map(g => g.center).filter(Boolean);
+    const response = await fetchDirections(...centers);
     // TODO handle bad response
     if (response) {
       routeStore.set({
-        locationA: { ...centerA, text: locationAText },
-        locationB: { ...centerB, text: locationBText },
+        locations: geocoders,
         response,
       });
     }
   };
-
-  // Submit a directions require on initial mount if possible
-  if (centerA && centerB) {
-    submitRequest();
-  }
 
   const handleGeocoderResult = value => {
     const { place_name: placeName } = value;
@@ -56,65 +46,73 @@
     return { center, placeName };
   };
 
+  const mountGeocoder = id => {
+    const geocoder = new MapboxGeocoder({
+      accessToken: mapboxGlAccessToken,
+      mapboxgl: mapboxgl,
+    });
+
+    geocoder.addTo(`#${id}`);
+
+    const geocoderObj = geocoders.find(g => g.id === id);
+
+    geocoder.on('result', e => {
+      const { center, placeName } = handleGeocoderResult(e.result);
+      geocoderObj.center = center;
+      geocoderObj.locationText = placeName;
+    });
+    geocoder.on('clear', e => {
+      geocoderObj.center = null;
+      geocoderObj.locationText = '';
+    });
+  };
+
+  const setFocusedClass = id => {
+    const el = document.getElementById(id);
+    el.classList.remove('unfocused-input');
+    el.classList.add('focused-input');
+  };
+
+  const removeFocusedClass = id => {
+    const el = document.getElementById(id);
+    el.classList.remove('focused-input');
+    el.classList.add('unfocused-input');
+  };
+
   onMount(() => {
-    geocoderA = new MapboxGeocoder({
-      accessToken: mapboxGlAccessToken,
-      mapboxgl: mapboxgl,
-      placeholder: locationAText,
-    });
-    geocoderB = new MapboxGeocoder({
-      accessToken: mapboxGlAccessToken,
-      mapboxgl: mapboxgl,
-      placeholder: locationBText,
-    });
+    geocoders.forEach(g => mountGeocoder(g.id));
 
-    geocoderA.addTo('#geocoderA');
-    geocoderB.addTo('#geocoderB');
-
-    const [inputA, inputB] = document.getElementsByClassName(
+    const inputs = document.getElementsByClassName(
       'mapboxgl-ctrl-geocoder--input'
     );
 
-    inputA.value = locationAText;
-    inputB.value = locationBText;
+    [...inputs].forEach((input, i) => {
+      input.value = geocoders[i].locationText;
+      input.addEventListener('focusin', () => setFocusedClass(geocoders[i].id));
+      input.addEventListener('focusout', () =>
+        removeFocusedClass(geocoders[i].id)
+      );
+    });
 
-    geocoderA.on('result', e => {
-      const { center, placeName } = handleGeocoderResult(e.result);
-      centerA = center;
-      locationAText = placeName;
-    });
-    geocoderB.on('result', e => {
-      const { center, placeName } = handleGeocoderResult(e.result);
-      centerB = center;
-      locationBText = placeName;
-    });
-    geocoderA.on('clear', e => {
-      centerA = null;
-      locationAText = '';
-    });
-    geocoderB.on('clear', e => {
-      centerB = null;
-      locationBText = '';
-    });
+    // Submit a directions require on initial mount if possible
+    if (hasMinimumLocations()) {
+      submitRequest();
+    }
   });
 </script>
 
 <div class="directions">
-  <div class="geocoder-container">
-    <span class="label">A:</span>
-    <div class="geocoder">
-      <div id="geocoderA" />
+  {#each geocoders as geocoderObj}
+    <div class="search-container">
+      <span class="label">{geocoderObj.id.toUpperCase()}:</span>
+      <div class="geocoder-container">
+        <div id={geocoderObj.id} class="geocoder unfocused-input" />
+      </div>
     </div>
-  </div>
-  <div class="geocoder-container">
-    <span class="label">B:</span>
-    <div class="geocoder">
-      <div id="geocoderB" />
-    </div>
-  </div>
+  {/each}
   <button
     class="button"
-    disabled={!centerA || !centerB}
+    disabled={!hasMinimumLocations()}
     on:click={submitRequest}>Submit</button
   >
 </div>
@@ -145,18 +143,30 @@
     height: 36px;
   }
 
-  .geocoder-container {
+  .search-container {
     margin-left: 12px;
     margin-bottom: 12px;
     display: flex;
     align-items: center;
   }
 
-  .geocoder {
+  .geocoder-container {
     display: flex;
     position: relative;
     width: 180px;
     height: 36px;
+  }
+
+  .geocoder {
+    position: absolute;
+  }
+
+  .unfocused-input {
+    z-index: 0;
+  }
+
+  :global(.focused-input) {
+    z-index: 1000;
   }
 
   .label {

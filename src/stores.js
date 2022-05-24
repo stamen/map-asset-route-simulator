@@ -5,7 +5,7 @@ const hashObj = readHash(window.location.hash);
 
 export const config = writable({});
 
-const routeKeys = ['locationA', 'locationB'];
+const routeKeys = ['locations'];
 const initialRoute = Object.keys(hashObj).reduce((acc, key) => {
   if (routeKeys.includes(key)) {
     acc[key] = hashObj[key];

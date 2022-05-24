@@ -22,17 +22,15 @@
     }
   });
 
-  let locationA;
-  let locationB;
+  let locations;
   routeStore.subscribe(value => {
-    const { locationA: locA, locationB: locB } = value;
-    locationA = locA || null;
-    locationB = locB || null;
+    const { locations: storeLocations } = value;
+    locations = storeLocations || null;
   });
 
   $: {
     if (mapState) {
-      writeHash({ locationA, locationB, ...mapState });
+      writeHash({ locations, ...mapState });
     }
   }
 </script>

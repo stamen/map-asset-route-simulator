@@ -91,7 +91,7 @@
           'line-cap': 'round',
         },
         paint: {
-          'line-color': 'cyan',
+          'line-color': 'blue',
           'line-width': 8,
         },
       });

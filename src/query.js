@@ -3,7 +3,7 @@ const round = (n, digits) => {
 };
 
 // Keys that should be encoded/decoded as arrays
-const jsonKeys = ['locationA', 'locationB'];
+const jsonKeys = ['locations'];
 
 // Keys that should be encoded/decoded as boolean values
 const booleanKeys = [];
@@ -50,7 +50,7 @@ function fromQueryString(qs) {
 const cleanSettings = stateObj => {
   let nextState = Object.keys(stateObj).reduce((acc, k) => {
     const value = stateObj[k];
-    if (value !== null) acc[k] = value;
+    if (value !== null && JSON.parse(value) !== null) acc[k] = value;
     return acc;
   }, {});
   return nextState;
