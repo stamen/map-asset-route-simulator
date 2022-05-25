@@ -1,7 +1,8 @@
 <script>
+  import Directions from './Directions.svelte';
 </script>
 
-<div class="panel" />
+<div class="panel"><Directions /></div>
 
 <style>
   .panel {
