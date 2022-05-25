@@ -1,5 +1,7 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
+  import { faXmark } from '@fortawesome/free-solid-svg-icons';
+  import Fa from 'svelte-fa/src/fa.svelte';
   import mapboxgl from 'mapbox-gl';
   import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.min.js';
   import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
@@ -8,6 +10,8 @@
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
+
+  let disableSubmit = false;
 
   // TODO allow adding a geocoder
   let geocoders = [
@@ -24,6 +28,12 @@
   const hasMinimumLocations = () => {
     return geocoders.map(g => g.center).filter(Boolean).length >= 2;
   };
+
+  $: {
+    if (geocoders) {
+      disableSubmit = !hasMinimumLocations();
+    }
+  }
 
   const submitRequest = async () => {
     const centers = geocoders.map(g => g.center).filter(Boolean);
@@ -54,16 +64,16 @@
 
     geocoder.addTo(`#${id}`);
 
-    const geocoderObj = geocoders.find(g => g.id === id);
-
     geocoder.on('result', e => {
       const { center, placeName } = handleGeocoderResult(e.result);
-      geocoderObj.center = center;
-      geocoderObj.locationText = placeName;
+      geocoders = geocoders.map(g =>
+        g.id === id ? { ...g, center, locationText: placeName } : g
+      );
     });
     geocoder.on('clear', e => {
-      geocoderObj.center = null;
-      geocoderObj.locationText = '';
+      geocoders = geocoders.map(g =>
+        g.id === id ? { ...g, center: null, locationText: '' } : g
+      );
     });
   };
 
@@ -99,21 +109,44 @@
       submitRequest();
     }
   });
+
+  const addStop = async () => {
+    const id = String.fromCharCode(geocoders.length + 1 + 64).toLowerCase();
+    geocoders = geocoders.concat([{ id, center: null, locationText: '' }]);
+    // Tick waits for the state changes to apply and the component to render
+    await tick();
+    mountGeocoder(id);
+  };
+
+  const removeStop = id => {
+    geocoders = geocoders.filter(g => g.id !== id);
+  };
 </script>
 
 <div class="directions">
-  {#each geocoders as geocoderObj}
-    <div class="search-container">
-      <span class="label">{geocoderObj.id.toUpperCase()}:</span>
-      <div class="geocoder-container">
-        <div id={geocoderObj.id} class="geocoder unfocused-input" />
+  {#each geocoders as geocoderObj, i}
+    <div class="stop">
+      <div class="search-container">
+        <span class="label">{geocoderObj.id.toUpperCase()}:</span>
+        <div class="geocoder-container">
+          <div id={geocoderObj.id} class="geocoder unfocused-input" />
+        </div>
       </div>
+      {#if i >= 2}
+        <button class="remove-stop" on:click={() => removeStop(geocoderObj.id)}
+          ><Fa icon={faXmark} /></button
+        >
+      {/if}
     </div>
   {/each}
   <button
     class="button"
-    disabled={!hasMinimumLocations()}
-    on:click={submitRequest}>Submit</button
+    disabled={geocoders.length >= 4}
+    title={geocoders.length >= 4 ? 'maximum of 4 stops allowed' : ''}
+    on:click={addStop}>Add stop</button
+  >
+  <button class="button" disabled={disableSubmit} on:click={submitRequest}
+    >Submit</button
   >
 </div>
 
@@ -121,15 +154,6 @@
   :global(.suggestions) {
     position: absolute !important;
     z-index: 1000px !important;
-  }
-
-  #geocoderA {
-    position: absolute;
-  }
-
-  #geocoderB {
-    position: absolute;
-    z-index: 0;
   }
 
   .directions {
@@ -143,9 +167,16 @@
     height: 36px;
   }
 
+  .stop {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
   .search-container {
     margin-left: 12px;
-    margin-bottom: 12px;
     display: flex;
     align-items: center;
   }
@@ -174,5 +205,14 @@
     font-weight: bold;
     font-size: 18px;
     margin-right: 12px;
+  }
+
+  .remove-stop {
+    display: flex;
+    margin-right: 12px;
+    width: 24px;
+    height: 24px;
+    justify-content: center;
+    align-items: center;
   }
 </style>
