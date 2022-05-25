@@ -1,4 +1,5 @@
 <script>
+  import { loadFigmassets } from 'figmasset';
   import throttle from 'lodash.throttle';
   import {
     config as configStore,
@@ -16,7 +17,8 @@
   export let url;
 
   let mapboxGlAccessToken;
-  configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
+  let figmaLink;
+  configStore.subscribe(value => ({ mapboxGlAccessToken, figmaLink } = value));
 
   let directionsApiResponse;
   routeStore.subscribe(value => ({ response: directionsApiResponse } = value));
@@ -62,6 +64,8 @@
     map.on('move', () => {
       throttledSetMapState();
     });
+
+    setTimeout(handleFigma, 1000);
   });
 
   onDestroy(() => {
@@ -69,6 +73,50 @@
       map.remove();
     }
   });
+
+  const handleFigma = () => {
+    const iconPromise = loadFigmassets(figmaLink);
+
+    iconPromise.then(iconsObj => {
+      Object.entries(iconsObj).forEach(kv => {
+        const [k, v] = kv;
+        // TODO temp
+        const url = v['@1x'];
+        const name = k;
+        map.loadImage(url, (error, image) => {
+          if (error) throw error;
+
+          map.addImage(name, image);
+
+          map.addSource(name, {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: [
+                {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'Point',
+                    coordinates: [-77.4144, 25.0759],
+                  },
+                },
+              ],
+            },
+          });
+
+          map.addLayer({
+            id: name,
+            type: 'symbol',
+            source: name,
+            layout: {
+              'icon-image': name,
+              'icon-size': 1,
+            },
+          });
+        });
+      });
+    });
+  };
 
   const addRouteLine = () => {
     if (!directionsApiResponse) return;
