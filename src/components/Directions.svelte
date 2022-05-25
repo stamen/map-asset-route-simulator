@@ -81,6 +81,12 @@
     const el = document.getElementById(id);
     el.classList.remove('unfocused-input');
     el.classList.add('focused-input');
+
+    const otherInputs = geocoders.filter(g => g.id !== id).map(g => g.id);
+
+    otherInputs.forEach(geocoderId => {
+      removeFocusedClass(geocoderId);
+    });
   };
 
   const removeFocusedClass = id => {
@@ -99,9 +105,6 @@
     [...inputs].forEach((input, i) => {
       input.value = geocoders[i].locationText;
       input.addEventListener('focusin', () => setFocusedClass(geocoders[i].id));
-      input.addEventListener('focusout', () =>
-        removeFocusedClass(geocoders[i].id)
-      );
     });
 
     // Submit a directions require on initial mount if possible
@@ -197,6 +200,10 @@
   }
 
   :global(.focused-input) {
+    z-index: 1000;
+  }
+
+  :global(.focused-input > .mapboxgl-ctrl-geocoder .suggestions) {
     z-index: 1000;
   }
 
