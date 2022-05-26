@@ -12,6 +12,7 @@
 
   const ROUTE_LINE_SOURCE_ID = 'route-line';
   const ROUTE_LINE_LAYER_ID = 'route-line';
+  const MAP_ASSET_ICONS = ['destination-pin', 'puck'];
 
   export let id;
   export let url;
@@ -75,52 +76,74 @@
   });
 
   const handleFigma = () => {
-    const iconPromise = loadFigmassets(figmaLink);
+    // TODO make keys optional, don't need to provide both or any icons if they don't want
+    const orderedFrames = MAP_ASSET_ICONS;
+    let args = {
+      ...figmaLink,
+      // We need to transform this because our config requires more specificity
+      // Frames can be named anything, but icons in the frames need specific names
+      frameNames: [...new Set(orderedFrames.map(frame => figmaLink[frame]))],
+      scales: [figmaLink.scale],
+    };
+    delete args.destinationPin;
+    delete args.puck;
+    delete args.scale;
+    const iconPromise = loadFigmassets(args);
 
     iconPromise.then(iconsObj => {
-      Object.entries(iconsObj).forEach(kv => {
-        const [k, v] = kv;
-        // TODO temp
-        const url = v['@1x'];
+      const checkForNames = Object.keys(iconsObj).every(iconId =>
+        MAP_ASSET_ICONS.includes(iconId)
+      );
+      if (!checkForNames)
+        throw new Error(
+          `Icons in frames need to be named ${MAP_ASSET_ICONS.join(
+            ', '
+          )}. Found ${Object.keys(iconsObj).join(
+            ', '
+          )}. Please check icon names in your Figma file.`
+        );
+      MAP_ASSET_ICONS.forEach((k, i) => {
         const name = k;
+        const v = iconsObj[k];
+        // We only allow one scale in our config, so there is only one @ key (eg `@1x`)
+        const scaleKey = Object.keys(v).find(k => k.includes('@'));
+        const url = v[scaleKey];
+
         map.loadImage(url, (error, image) => {
           if (error) throw error;
 
           map.addImage(name, image);
-
-          map.addSource(name, {
-            type: 'geojson',
-            data: {
-              type: 'FeatureCollection',
-              features: [
-                {
-                  type: 'Feature',
-                  geometry: {
-                    type: 'Point',
-                    coordinates: [-77.4144, 25.0759],
-                  },
-                },
-              ],
-            },
-          });
-
-          map.addLayer({
-            id: name,
-            type: 'symbol',
-            source: name,
-            layout: {
-              'icon-image': name,
-              'icon-size': 1,
-            },
-          });
         });
       });
     });
   };
 
+  const addMapAssetImages = (iconName, coords) => {
+    map.addSource(iconName, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: coords,
+        },
+      },
+    });
+
+    map.addLayer({
+      id: iconName,
+      type: 'symbol',
+      source: iconName,
+      layout: {
+        'icon-image': iconName,
+        'icon-size': 0.25,
+      },
+    });
+  };
+
   const addRouteLine = () => {
     if (!directionsApiResponse) return;
-    const { routes } = directionsApiResponse;
+    const { routes, waypoints } = directionsApiResponse;
     // Ignore alternative routes if there are any
     const route = routes[0];
     const { geometry } = route;
@@ -146,6 +169,15 @@
     } else {
       map.getSource(ROUTE_LINE_SOURCE_ID).setData(geometry);
     }
+
+    // ---------------------------------------------------------
+
+    // TODO: Temporary, we don't want this until we start routing
+    const [start, end] = waypoints;
+    addMapAssetImages('puck', start.location);
+    addMapAssetImages('destination-pin', end.location);
+
+    // ---------------------------------------------------------
 
     const { coordinates } = geometry;
 
