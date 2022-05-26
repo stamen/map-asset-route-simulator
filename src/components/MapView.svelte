@@ -8,6 +8,7 @@
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
+  import { addFigmaImages } from '../add-figma-images';
 
   const ROUTE_LINE_SOURCE_ID = 'route-line';
   const ROUTE_LINE_LAYER_ID = 'route-line';
@@ -27,6 +28,9 @@
   mapboxgl.accessToken = mapboxGlAccessToken;
 
   let map;
+
+  // This becomes populated with the names of images from Figma if they exist
+  let figmaMapAssets = [];
 
   const throttledSetMapState = throttle(() => {
     if (!map) return;
@@ -54,6 +58,13 @@
           setTimeout(loading, 150);
         } else {
           addRouteLine();
+          addFigmaImages(map)
+            .then(addedIcons => {
+              figmaMapAssets = addedIcons;
+            })
+            .catch(err => {
+              console.error(err);
+            });
         }
       };
       loading();
@@ -69,6 +80,28 @@
       map.remove();
     }
   });
+
+  const addMapAssetImages = (iconName, coords) => {
+    map.addSource(iconName, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: coords,
+        },
+      },
+    });
+
+    map.addLayer({
+      id: iconName,
+      type: 'symbol',
+      source: iconName,
+      layout: {
+        'icon-image': iconName,
+      },
+    });
+  };
 
   const addRouteLine = () => {
     if (!directionsApiResponse) return;
