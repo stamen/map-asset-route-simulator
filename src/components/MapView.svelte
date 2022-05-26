@@ -30,6 +30,7 @@
   mapboxgl.accessToken = mapboxGlAccessToken;
 
   let map;
+  let addedMapAssetImages = [];
 
   const throttledSetMapState = throttle(() => {
     if (!map) return;
@@ -114,6 +115,7 @@
         map.loadImage(url, (error, image) => {
           if (error) throw error;
 
+          addedMapAssetImages = addedMapAssetImages.concat([name]);
           map.addImage(name, image);
         });
       });
@@ -138,14 +140,13 @@
       source: iconName,
       layout: {
         'icon-image': iconName,
-        'icon-size': 0.25,
       },
     });
   };
 
   const addRouteLine = () => {
     if (!directionsApiResponse) return;
-    const { routes, waypoints } = directionsApiResponse;
+    const { routes } = directionsApiResponse;
     // Ignore alternative routes if there are any
     const route = routes[0];
     const { geometry } = route;
@@ -171,15 +172,6 @@
     } else {
       map.getSource(ROUTE_LINE_SOURCE_ID).setData(geometry);
     }
-
-    // ---------------------------------------------------------
-
-    // TODO: Temporary, we don't want this until we start routing
-    const [start, end] = waypoints;
-    addMapAssetImages('puck', start.location);
-    addMapAssetImages('destination-pin', end.location);
-
-    // ---------------------------------------------------------
 
     const { coordinates } = geometry;
 

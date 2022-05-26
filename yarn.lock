@@ -622,10 +622,9 @@ execa@^4.0.0:
     signal-exit "^3.0.2"
     strip-final-newline "^2.0.0"
 
-figmasset@^0.1.5:
+"figmasset@git+https://github.com/stamen/figmasset#browser-compatible":
   version "0.1.5"
-  resolved "https://registry.yarnpkg.com/figmasset/-/figmasset-0.1.5.tgz#e334f839eef4bb85c0b24a4a6b0e810a70d6dd99"
-  integrity sha512-MaGzKEKzeaZ0GXs/pjS/rpiQiaPSJ83aVQx2fBPE/hXS8vhzyW+bgIY4O2P+ptEQ3xiAEBa92Z/yuNYddjVa4A==
+  resolved "git+https://github.com/stamen/figmasset#ffba04d43ca047da4fb3197a2a19d996d7c48530"
 
 fill-range@^7.0.1:
   version "7.0.1"
