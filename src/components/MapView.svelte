@@ -58,9 +58,13 @@
           setTimeout(loading, 150);
         } else {
           addRouteLine();
-          addFigmaImages(map).then(addedIcons => {
-            figmaMapAssets = addedIcons;
-          });
+          addFigmaImages(map)
+            .then(addedIcons => {
+              figmaMapAssets = addedIcons;
+            })
+            .catch(err => {
+              console.error(err);
+            });
         }
       };
       loading();
