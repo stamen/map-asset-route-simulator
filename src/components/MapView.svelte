@@ -66,7 +66,9 @@
       throttledSetMapState();
     });
 
-    setTimeout(handleFigma, 1000);
+    if (figmaLink) {
+      handleFigma();
+    }
   });
 
   onDestroy(() => {
