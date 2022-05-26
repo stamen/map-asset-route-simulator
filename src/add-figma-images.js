@@ -1,11 +1,12 @@
 import { loadFigmassets } from 'figmasset';
 import { config as configStore } from './stores';
-
-const MAP_ASSET_ICONS = ['destination-pin', 'puck'];
+import { MAP_ASSET_ICONS } from './constants';
 
 let figmaLink;
 configStore.subscribe(value => ({ figmaLink } = value));
 
+// Takes a map object and adds any valid Figma images referenced in the config to the map
+// Returns an array of all images that have been added
 const addFigmaImages = async map => {
   if (!figmaLink) return new Promise([]);
   // TODO make keys optional, don't need to provide both or any icons if they don't want
