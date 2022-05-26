@@ -80,12 +80,15 @@
 
   const handleFigma = () => {
     // TODO make keys optional, don't need to provide both or any icons if they don't want
-    const orderedFrames = MAP_ASSET_ICONS;
     let args = {
       ...figmaLink,
       // We need to transform this because our config requires more specificity
       // Frames can be named anything, but icons in the frames need specific names
-      frameNames: [...new Set(orderedFrames.map(frame => figmaLink[frame]))],
+      frameNames: [
+        ...new Set(
+          MAP_ASSET_ICONS.map(frame => figmaLink[frame]).filter(Boolean)
+        ),
+      ],
       scales: [figmaLink.scale],
     };
     delete args.destinationPin;
@@ -94,8 +97,8 @@
     const iconPromise = loadFigmassets(args);
 
     iconPromise.then(iconsObj => {
-      const checkForNames = Object.keys(iconsObj).every(iconId =>
-        MAP_ASSET_ICONS.includes(iconId)
+      const checkForNames = MAP_ASSET_ICONS.some(icon =>
+        Object.keys(iconsObj).includes(icon)
       );
       if (!checkForNames)
         throw new Error(
@@ -105,9 +108,9 @@
             ', '
           )}. Please check icon names in your Figma file.`
         );
-      MAP_ASSET_ICONS.forEach((k, i) => {
-        const name = k;
-        const v = iconsObj[k];
+      MAP_ASSET_ICONS.forEach(name => {
+        const v = iconsObj[name];
+        if (!v) return;
         // We only allow one scale in our config, so there is only one @ key (eg `@1x`)
         const scaleKey = Object.keys(v).find(k => k.includes('@'));
         const url = v[scaleKey];
