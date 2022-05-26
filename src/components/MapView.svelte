@@ -1,5 +1,4 @@
 <script>
-  import { loadFigmassets } from 'figmasset';
   import throttle from 'lodash.throttle';
   import {
     config as configStore,
@@ -9,17 +8,16 @@
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
+  import { addFigmaImages } from '../add-figma-images';
 
   const ROUTE_LINE_SOURCE_ID = 'route-line';
   const ROUTE_LINE_LAYER_ID = 'route-line';
-  const MAP_ASSET_ICONS = ['destination-pin', 'puck'];
 
   export let id;
   export let url;
 
   let mapboxGlAccessToken;
-  let figmaLink;
-  configStore.subscribe(value => ({ mapboxGlAccessToken, figmaLink } = value));
+  configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
 
   let directionsApiResponse;
   routeStore.subscribe(value => ({ response: directionsApiResponse } = value));
@@ -30,7 +28,9 @@
   mapboxgl.accessToken = mapboxGlAccessToken;
 
   let map;
-  let addedMapAssetImages = [];
+
+  // This becomes populated with the names of images from Figma if they exist
+  let figmaMapAssets = [];
 
   const throttledSetMapState = throttle(() => {
     if (!map) return;
@@ -58,6 +58,9 @@
           setTimeout(loading, 150);
         } else {
           addRouteLine();
+          addFigmaImages(map).then(addedIcons => {
+            figmaMapAssets = addedIcons;
+          });
         }
       };
       loading();
@@ -66,10 +69,6 @@
     map.on('move', () => {
       throttledSetMapState();
     });
-
-    if (figmaLink) {
-      handleFigma();
-    }
   });
 
   onDestroy(() => {
@@ -77,53 +76,6 @@
       map.remove();
     }
   });
-
-  const handleFigma = () => {
-    // TODO make keys optional, don't need to provide both or any icons if they don't want
-    let args = {
-      ...figmaLink,
-      // We need to transform this because our config requires more specificity
-      // Frames can be named anything, but icons in the frames need specific names
-      frameNames: [
-        ...new Set(
-          MAP_ASSET_ICONS.map(frame => figmaLink[frame]).filter(Boolean)
-        ),
-      ],
-      scales: [figmaLink.scale],
-    };
-    delete args.destinationPin;
-    delete args.puck;
-    delete args.scale;
-    const iconPromise = loadFigmassets(args);
-
-    iconPromise.then(iconsObj => {
-      const checkForNames = MAP_ASSET_ICONS.some(icon =>
-        Object.keys(iconsObj).includes(icon)
-      );
-      if (!checkForNames)
-        throw new Error(
-          `Icons in frames need to be named ${MAP_ASSET_ICONS.join(
-            ', '
-          )}. Found ${Object.keys(iconsObj).join(
-            ', '
-          )}. Please check icon names in your Figma file.`
-        );
-      MAP_ASSET_ICONS.forEach(name => {
-        const v = iconsObj[name];
-        if (!v) return;
-        // We only allow one scale in our config, so there is only one @ key (eg `@1x`)
-        const scaleKey = Object.keys(v).find(k => k.includes('@'));
-        const url = v[scaleKey];
-
-        map.loadImage(url, (error, image) => {
-          if (error) throw error;
-
-          addedMapAssetImages = addedMapAssetImages.concat([name]);
-          map.addImage(name, image);
-        });
-      });
-    });
-  };
 
   const addMapAssetImages = (iconName, coords) => {
     map.addSource(iconName, {
