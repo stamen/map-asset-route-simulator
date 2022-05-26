@@ -9,6 +9,7 @@
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
   import { addFigmaImages } from '../add-figma-images';
+  import { navigateRoute } from '../navigate-route';
 
   const ROUTE_LINE_SOURCE_ID = 'route-line';
   const ROUTE_LINE_LAYER_ID = 'route-line';
@@ -108,11 +109,31 @@
     const { routes } = directionsApiResponse;
     // Ignore alternative routes if there are any
     const route = routes[0];
-    const { geometry } = route;
+    // TODO: Do we care about the low res geometry?
+    const { geometry: lowResGeom } = route;
+
+    let features = route.legs.reduce((acc, leg) => {
+      const steps = leg.steps.reduce(
+        (acc, step) => acc.concat(step.geometry),
+        []
+      );
+      acc = acc.concat(steps);
+      return acc;
+    }, []);
+
+    features = features.map(f => ({ type: 'Feature', geometry: f }));
+
+    const highResGeom = {
+      type: 'FeatureCollection',
+      features: features,
+    };
 
     const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
     if (!sourceLoaded) {
-      map.addSource(ROUTE_LINE_SOURCE_ID, { type: 'geojson', data: geometry });
+      map.addSource(ROUTE_LINE_SOURCE_ID, {
+        type: 'geojson',
+        data: highResGeom,
+      });
       // TODO make sure this layer name doesn't exist
       // TODO decide if we want to allow empty layer in style or just add our own
       map.addLayer({
@@ -132,7 +153,27 @@
       map.getSource(ROUTE_LINE_SOURCE_ID).setData(geometry);
     }
 
-    const { coordinates } = geometry;
+    // ----------------------
+
+    const navigationSteps = async () => {
+      for (const leg of route.legs) {
+        for (const step of leg.steps) {
+          const { distance, duration, geometry, intersections } = step;
+          await navigateRoute(map, {
+            distance,
+            duration,
+            coordinates: geometry.coordinates,
+            intersections,
+          });
+        }
+      }
+    };
+
+    navigationSteps();
+
+    // ----------------------
+
+    const { coordinates } = lowResGeom;
 
     const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
 
