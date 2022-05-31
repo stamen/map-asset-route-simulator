@@ -153,26 +153,6 @@
       map.getSource(ROUTE_LINE_SOURCE_ID).setData(geometry);
     }
 
-    // ----------------------
-
-    const navigationSteps = async () => {
-      for (const leg of route.legs) {
-        for (const step of leg.steps) {
-          const { distance, duration, geometry, intersections } = step;
-          await navigateRoute(map, {
-            distance,
-            duration,
-            coordinates: geometry.coordinates,
-            intersections,
-          });
-        }
-      }
-    };
-
-    navigationSteps();
-
-    // ----------------------
-
     const { coordinates } = lowResGeom;
 
     const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
@@ -184,6 +164,33 @@
     map.fitBounds(bounds, {
       padding: 20,
     });
+
+    // ----------------------
+
+    // Need to alter this into a new structure with a single line string and duration for maneuvers
+
+    // const navigationSteps = async () => {
+    //   for (const leg of route.legs) {
+    //     for (let i = 0; i < leg.steps.length; i++) {
+    //       const step = leg.steps[i];
+    //       const { distance, duration, geometry, maneuver } = step;
+    //       const nextManeuver = leg.steps?.[i + 1]?.maneuver || maneuver;
+    //       await navigateRoute(map, {
+    //         distance,
+    //         duration,
+    //         coordinates: geometry.coordinates,
+    //         maneuver,
+    //         nextManeuver,
+    //       });
+    //     }
+    //   }
+    // };
+
+    navigateRoute(map, route, lowResGeom);
+
+    // console.log(directionsApiResponse);
+
+    // ----------------------
   };
 
   $: {
