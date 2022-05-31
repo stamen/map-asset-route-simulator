@@ -3,7 +3,7 @@ import * as geolib from 'geolib';
 import mapboxgl from 'mapbox-gl';
 
 const LOOK_AHEAD_DISTANCE = 1;
-const DURATION_MULTIPLIER = 100;
+const DURATION_MULTIPLIER = 50;
 const CAMERA_ALTITUDE = 500;
 const POV_DISTANCE = CAMERA_ALTITUDE * -1.5;
 
@@ -57,12 +57,12 @@ const getPovAndLookAtPoint = (point, bearing) => {
   return { pov: povPoint, lookAt: lookAtPoint };
 };
 
-const handleManeuver = (map, maneuver) => {
+const handleManeuver = (map, maneuver, bearingBefore) => {
   return new Promise((resolve, reject) => {
-    let { bearing_before, bearing_after, location, modifier, type } = maneuver;
+    let { bearing_after, location, modifier, type } = maneuver;
 
     let start;
-    let bearing = bearing_before;
+    let bearing = bearingBefore;
 
     // This is to prevent stopping on the route during slight turns like on or off ramps
     if (!type.includes('turn')) return resolve(bearing);
@@ -70,7 +70,7 @@ const handleManeuver = (map, maneuver) => {
     const isClockwise = modifier.includes('left') ? false : true;
 
     const animationDuration =
-      (calculatePointDistance(bearing_before, bearing_after, isClockwise) *
+      (calculatePointDistance(bearingBefore, bearing_after, isClockwise) *
         DURATION_MULTIPLIER) /
       10;
 
@@ -79,7 +79,7 @@ const handleManeuver = (map, maneuver) => {
       const phase = (time - start) / animationDuration;
 
       if (phase > 1) {
-        return resolve();
+        return resolve(bearing);
       }
 
       const camera = map.getFreeCameraOptions();
@@ -91,7 +91,7 @@ const handleManeuver = (map, maneuver) => {
 
       if (type !== 'arrive') {
         bearing = calculateBearing(
-          bearing_before,
+          bearingBefore,
           bearing_after,
           isClockwise,
           phase
@@ -123,9 +123,25 @@ const handleManeuver = (map, maneuver) => {
   });
 };
 
+const smoothBearing = (bearing, nextBearing) => {
+  const leftDistance = calculatePointDistance(bearing, nextBearing, false);
+  const rightDistance = calculatePointDistance(bearing, nextBearing, true);
+
+  let isClockwise = rightDistance < leftDistance ? true : false;
+
+  // Revisit the hardcoded 0.25
+  const smoothed = calculateBearing(bearing, nextBearing, isClockwise, 0.25);
+
+  return smoothed;
+};
+
 const navigate = (map, options) => {
-  return new Promise((resolve, reject) => {
-    const { duration, coordinates, maneuver, nextManeuver } = options;
+  return new Promise(async (resolve, reject) => {
+    const { duration, coordinates, maneuver } = options;
+
+    const currentBearing =
+      map.getBearing() < 0 ? 360 + map.getBearing() : map.getBearing();
+    let bearing = await handleManeuver(map, maneuver, currentBearing);
 
     const targetRoute = coordinates;
     const lookAheadIndex = 1;
@@ -143,17 +159,12 @@ const navigate = (map, options) => {
     );
 
     let start;
-    let bearingBefore = maneuver.bearing_after;
-    let bearing = bearingBefore;
 
     function frame(time) {
       if (!start) start = time;
       // phase determines how far through the animation we are
       const phase = (time - start) / animationDuration;
 
-      // use the phase to get a point that is the appropriate distance along the route
-      // this approach syncs the camera and route positions ensuring they move
-      // at roughly equal rates even if they don't contain the same number of points
       const alongRoute = turf.along(
         turf.lineString(targetRoute),
         routeDistance * phase
@@ -167,13 +178,7 @@ const navigate = (map, options) => {
       // phase is normalized between 0 and 1
       // when the animation is finished, reset start to loop the animation
       if (phase > 1) {
-        if (!nextManeuver) return resolve({ segmentComplete: true });
-
-        // We don't need to resolve anything, but this helps for documentation
-        // handle maneuver
-        return handleManeuver(map, nextManeuver).then(bearing => {
-          return resolve({ segmentComplete: true });
-        });
+        return resolve({ segmentComplete: true });
       }
 
       const camera = map.getFreeCameraOptions();
@@ -189,7 +194,9 @@ const navigate = (map, options) => {
       };
 
       // calculate the bearing based on the angle between the point we're at in the route and the look ahead point
-      bearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
+      let nextBearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
+
+      bearing = smoothBearing(bearing, nextBearing);
 
       const { pov, lookAt } = getPovAndLookAtPoint(routePoint, bearing);
 
@@ -216,50 +223,50 @@ const navigate = (map, options) => {
   });
 };
 
-// Takes the low rest route geometry from overview and slices it to the length of the step geometry
-// If this fails, we can simplify the geojson another way
-const getCameraRoute = (routeCoords, lowResRouteCoords) => {
-  let routeStart = routeCoords[0];
-  let routeEnd = routeCoords[routeCoords.length - 1];
-  routeStart = { longitude: routeStart[0], latitude: routeStart[1] };
-  routeEnd = { longitude: routeEnd[0], latitude: routeEnd[1] };
-  lowResRouteCoords = lowResRouteCoords.map(coord => ({
-    longitude: coord[0],
-    latitude: coord[1],
-  }));
-  const cameraRouteStart = geolib.findNearest(routeStart, lowResRouteCoords);
-  const cameraRouteEnd = geolib.findNearest(routeEnd, lowResRouteCoords);
+// // Takes the low resolution route geometry from overview and slices it to the length of the step geometry
+// // If this fails, we can simplify the geojson another way
+// const getCameraRoute = (routeCoords, lowResRouteCoords) => {
+//   let routeStart = routeCoords[0];
+//   let routeEnd = routeCoords[routeCoords.length - 1];
+//   routeStart = { longitude: routeStart[0], latitude: routeStart[1] };
+//   routeEnd = { longitude: routeEnd[0], latitude: routeEnd[1] };
+//   lowResRouteCoords = lowResRouteCoords.map(coord => ({
+//     longitude: coord[0],
+//     latitude: coord[1],
+//   }));
+//   const cameraRouteStart = geolib.findNearest(routeStart, lowResRouteCoords);
+//   const cameraRouteEnd = geolib.findNearest(routeEnd, lowResRouteCoords);
 
-  const sliceStartIndex = lowResRouteCoords.findIndex(
-    item => JSON.stringify(item) === JSON.stringify(cameraRouteStart)
-  );
-  const sliceEndIndex =
-    lowResRouteCoords.findIndex(
-      item => JSON.stringify(item) === JSON.stringify(cameraRouteEnd)
-    ) + 1;
+//   const sliceStartIndex = lowResRouteCoords.findIndex(
+//     item => JSON.stringify(item) === JSON.stringify(cameraRouteStart)
+//   );
+//   const sliceEndIndex =
+//     lowResRouteCoords.findIndex(
+//       item => JSON.stringify(item) === JSON.stringify(cameraRouteEnd)
+//     ) + 1;
 
-  const slicedRoute = lowResRouteCoords.slice(sliceStartIndex, sliceEndIndex);
+//   const slicedRoute = lowResRouteCoords.slice(sliceStartIndex, sliceEndIndex);
 
-  return slicedRoute.map(item => [item.longitude, item.latitude]);
-};
+//   return slicedRoute.map(item => [item.longitude, item.latitude]);
+// };
 
 const navigateRoute = async (map, route, lowResGeom) => {
+  // Possible we want to reconsider using the lowResGeom
   for (const leg of route.legs) {
     for (let i = 0; i < leg.steps.length; i++) {
       const step = leg.steps[i];
       const { duration, geometry, maneuver, intersections } = step;
-      const nextManeuver = leg.steps?.[i + 1]?.maneuver || maneuver;
 
-      const cameraRoute = getCameraRoute(
-        geometry.coordinates,
-        lowResGeom.coordinates
-      );
+      // TODO do we still want this?
+      // const cameraRoute = getCameraRoute(
+      //   geometry.coordinates,
+      //   lowResGeom.coordinates
+      // );
 
       await navigate(map, {
         duration,
-        coordinates: cameraRoute,
+        coordinates: geometry.coordinates,
         maneuver,
-        nextManeuver,
         intersections,
       });
     }
