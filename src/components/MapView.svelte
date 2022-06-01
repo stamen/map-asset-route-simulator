@@ -11,9 +11,7 @@
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
   import { addFigmaImages } from '../add-figma-images';
-
-  const ROUTE_LINE_SOURCE_ID = 'route-line';
-  const ROUTE_LINE_LAYER_ID = 'route-line';
+  import { ROUTE_LINE_SOURCE_ID, ROUTE_LINE_LAYER_ID } from '../constants';
 
   export let id;
   export let url;

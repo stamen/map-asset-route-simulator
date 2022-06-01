@@ -12,17 +12,20 @@
     map as mapStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
+  import {
+    DEFAULT_GEOCODERS,
+    ROUTE_LINE_LAYER_ID,
+    ROUTE_LINE_SOURCE_ID,
+  } from '../constants';
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
 
   let disableSubmit = false;
 
-  // TODO allow adding a geocoder
-  let geocoders = [
-    { id: 'a', center: null, locationText: '' },
-    { id: 'b', center: null, locationText: '' },
-  ];
+  let routeFlag = false;
+
+  let geocoders = DEFAULT_GEOCODERS;
 
   routeStore.subscribe(value => {
     if (value && value.hasOwnProperty('locations')) {
@@ -106,9 +109,7 @@
     el.classList.add('unfocused-input');
   };
 
-  onMount(() => {
-    geocoders.forEach(g => mountGeocoder(g.id));
-
+  const setGeocoderText = () => {
     const inputs = document.getElementsByClassName(
       'mapboxgl-ctrl-geocoder--input'
     );
@@ -117,6 +118,12 @@
       input.value = geocoders[i].locationText;
       input.addEventListener('focusin', () => setFocusedClass(geocoders[i].id));
     });
+  };
+
+  onMount(() => {
+    geocoders.forEach(g => mountGeocoder(g.id));
+
+    setGeocoderText();
 
     // Submit a directions require on initial mount if possible
     if (hasMinimumLocations()) {
@@ -136,9 +143,21 @@
     geocoders = geocoders.filter(g => g.id !== id);
   };
 
+  const clearRoute = () => {
+    geocoders = DEFAULT_GEOCODERS;
+    setGeocoderText();
+    routeStore.set({
+      locations: geocoders,
+      response: null,
+    });
+    map.removeLayer(ROUTE_LINE_LAYER_ID);
+    map.removeSource(ROUTE_LINE_SOURCE_ID);
+  };
+
   const runRoute = async () => {
-    const test = await navigateRoute(map, route);
-    console.log(test);
+    routeFlag = true;
+    await navigateRoute(map, route);
+    routeFlag = false;
   };
 </script>
 
@@ -152,22 +171,39 @@
         </div>
       </div>
       {#if i >= 2}
-        <button class="remove-stop" on:click={() => removeStop(geocoderObj.id)}
+        <button
+          class="remove-stop"
+          disabled={routeFlag}
+          on:click={() => removeStop(geocoderObj.id)}
           ><Fa icon={faXmark} /></button
         >
       {/if}
     </div>
   {/each}
+  <div class="button-margin">
+    <button
+      class="secondary-button"
+      disabled={geocoders.length >= 4 || routeFlag}
+      title={geocoders.length >= 4 ? 'maximum of 4 stops allowed' : ''}
+      on:click={addStop}>Add stop</button
+    >
+    <button
+      class="secondary-button"
+      disabled={routeFlag}
+      title={geocoders.length >= 4 ? 'maximum of 4 stops allowed' : ''}
+      on:click={clearRoute}>Clear route</button
+    >
+  </div>
   <button
-    class="button"
-    disabled={geocoders.length >= 4}
-    title={geocoders.length >= 4 ? 'maximum of 4 stops allowed' : ''}
-    on:click={addStop}>Add stop</button
+    class="primary-button button-margin"
+    disabled={disableSubmit || routeFlag}
+    on:click={submitRequest}>Submit</button
   >
-  <button class="button" disabled={disableSubmit} on:click={submitRequest}
-    >Submit</button
+  <button
+    class="primary-button button-margin"
+    disabled={routeFlag || !route}
+    on:click={runRoute}>Run route</button
   >
-  <button class="button" on:click={runRoute}>Run route</button>
 </div>
 
 <style>
@@ -181,9 +217,18 @@
     width: 100%;
   }
 
-  .button {
+  .button-margin {
     margin-left: 42px;
+    margin-bottom: 3px;
+  }
+
+  .primary-button {
     width: 240px;
+    height: 36px;
+  }
+
+  .secondary-button {
+    width: 120px;
     height: 36px;
   }
 
