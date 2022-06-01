@@ -48,10 +48,13 @@ const makeConfig = localConfig => {
     zoom: 13.25,
   };
 
+  const defaultRoutingOptions = { pitch: 60 };
+
   const config = {
     devices: defaultDevices,
     styles: defaultStyles,
     mapState: defaultMapState,
+    routingOptions: defaultRoutingOptions,
     ...localConfig,
   };
 

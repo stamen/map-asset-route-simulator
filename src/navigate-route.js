@@ -1,12 +1,15 @@
 import * as turf from '@turf/turf';
 import * as geolib from 'geolib';
 import mapboxgl from 'mapbox-gl';
-import { mapAssets as mapAssetsStore } from './stores';
+import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './add-map-assets';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
+
+let routingOptions;
+configStore.subscribe(value => ({ routingOptions } = value));
 
 const LOOK_AHEAD_DISTANCE = 1;
 const DURATION_MULTIPLIER = 25;
@@ -259,8 +262,8 @@ const navigateSteps = async (map, route) => {
   return { routeComplete: true };
 };
 
-const navigateRoute = (map, route, options = { pitch: 60 }) => {
-  const { pitch } = options;
+const navigateRoute = (map, route) => {
+  const { pitch } = routingOptions;
   povDistance = getPovDistance(pitch, CAMERA_ALTITUDE);
   return new Promise(res => {
     const fullCoords = route?.geometry?.coordinates;
