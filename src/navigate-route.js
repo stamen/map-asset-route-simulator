@@ -1,10 +1,16 @@
 import * as turf from '@turf/turf';
 import * as geolib from 'geolib';
 import mapboxgl from 'mapbox-gl';
+import { mapAssets as mapAssetsStore } from './stores';
+import { PUCK, DESTINATION_PIN } from './constants';
+import { setPuckLocation, setMarkerLayer } from './add-map-assets';
+
+let mapAssets = {};
+mapAssetsStore.subscribe(value => (mapAssets = value));
 
 const LOOK_AHEAD_DISTANCE = 1;
-const DURATION_MULTIPLIER = 50;
-const CAMERA_ALTITUDE = 500;
+const DURATION_MULTIPLIER = 25;
+const CAMERA_ALTITUDE = 100;
 const POV_DISTANCE = CAMERA_ALTITUDE * -1.5;
 
 const calculatePointDistance = (before, after, isClockwise) => {
@@ -45,6 +51,18 @@ const calculateBearing = (before, after, isClockwise, phase) => {
   return bearing;
 };
 
+const smoothBearing = (bearing, nextBearing) => {
+  const leftDistance = calculatePointDistance(bearing, nextBearing, false);
+  const rightDistance = calculatePointDistance(bearing, nextBearing, true);
+
+  let isClockwise = rightDistance < leftDistance ? true : false;
+
+  // TODO Revisit the hardcoded 0.25
+  const smoothed = calculateBearing(bearing, nextBearing, isClockwise, 0.25);
+
+  return smoothed;
+};
+
 const getPovAndLookAtPoint = (point, bearing) => {
   const lookAtPoint = geolib.computeDestinationPoint(
     point,
@@ -58,7 +76,7 @@ const getPovAndLookAtPoint = (point, bearing) => {
 };
 
 const handleManeuver = (map, maneuver, bearingBefore) => {
-  return new Promise((resolve, reject) => {
+  return new Promise(resolve => {
     let { bearing_after, location, modifier, type } = maneuver;
 
     let start;
@@ -72,7 +90,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
     const animationDuration =
       (calculatePointDistance(bearingBefore, bearing_after, isClockwise) *
         DURATION_MULTIPLIER) /
-      10;
+      5;
 
     function frame(time) {
       if (!start) start = time;
@@ -89,14 +107,12 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
         latitude: location[1],
       };
 
-      if (type !== 'arrive') {
-        bearing = calculateBearing(
-          bearingBefore,
-          bearing_after,
-          isClockwise,
-          phase
-        );
-      }
+      bearing = calculateBearing(
+        bearingBefore,
+        bearing_after,
+        isClockwise,
+        phase
+      );
 
       const { pov, lookAt } = getPovAndLookAtPoint(maneuverPoint, bearing);
 
@@ -123,21 +139,13 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
   });
 };
 
-const smoothBearing = (bearing, nextBearing) => {
-  const leftDistance = calculatePointDistance(bearing, nextBearing, false);
-  const rightDistance = calculatePointDistance(bearing, nextBearing, true);
-
-  let isClockwise = rightDistance < leftDistance ? true : false;
-
-  // Revisit the hardcoded 0.25
-  const smoothed = calculateBearing(bearing, nextBearing, isClockwise, 0.25);
-
-  return smoothed;
-};
-
 const navigate = (map, options) => {
-  return new Promise(async (resolve, reject) => {
+  return new Promise(async resolve => {
     const { duration, coordinates, maneuver } = options;
+
+    if (maneuver.type === 'arrive') {
+      return resolve({ segmentComplete: true });
+    }
 
     const currentBearing =
       map.getBearing() < 0 ? 360 + map.getBearing() : map.getBearing();
@@ -149,8 +157,7 @@ const navigate = (map, options) => {
       .slice(lookAheadIndex)
       .concat(Array(lookAheadIndex).fill(coordinates[coordinates.length - 1]));
 
-    // TODO resolve actual timing
-    // 10 multiplier is arbitrary. Duration is in seconds, but actual realistic timing is very slow
+    // multiplier is arbitrary. Duration is in seconds, but actual realistic timing is very slow
     const animationDuration = duration * DURATION_MULTIPLIER;
     // get the overall distance of each route so we can interpolate along them
     const routeDistance = turf.lineDistance(turf.lineString(targetRoute));
@@ -193,6 +200,8 @@ const navigate = (map, options) => {
         latitude: alongRoute[1],
       };
 
+      setPuckLocation(map, alongRoute);
+
       // calculate the bearing based on the angle between the point we're at in the route and the look ahead point
       let nextBearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
 
@@ -223,45 +232,12 @@ const navigate = (map, options) => {
   });
 };
 
-// // Takes the low resolution route geometry from overview and slices it to the length of the step geometry
-// // If this fails, we can simplify the geojson another way
-// const getCameraRoute = (routeCoords, lowResRouteCoords) => {
-//   let routeStart = routeCoords[0];
-//   let routeEnd = routeCoords[routeCoords.length - 1];
-//   routeStart = { longitude: routeStart[0], latitude: routeStart[1] };
-//   routeEnd = { longitude: routeEnd[0], latitude: routeEnd[1] };
-//   lowResRouteCoords = lowResRouteCoords.map(coord => ({
-//     longitude: coord[0],
-//     latitude: coord[1],
-//   }));
-//   const cameraRouteStart = geolib.findNearest(routeStart, lowResRouteCoords);
-//   const cameraRouteEnd = geolib.findNearest(routeEnd, lowResRouteCoords);
-
-//   const sliceStartIndex = lowResRouteCoords.findIndex(
-//     item => JSON.stringify(item) === JSON.stringify(cameraRouteStart)
-//   );
-//   const sliceEndIndex =
-//     lowResRouteCoords.findIndex(
-//       item => JSON.stringify(item) === JSON.stringify(cameraRouteEnd)
-//     ) + 1;
-
-//   const slicedRoute = lowResRouteCoords.slice(sliceStartIndex, sliceEndIndex);
-
-//   return slicedRoute.map(item => [item.longitude, item.latitude]);
-// };
-
-const navigateRoute = async (map, route, lowResGeom) => {
+const navigateSteps = async (map, route) => {
   // Possible we want to reconsider using the lowResGeom
   for (const leg of route.legs) {
     for (let i = 0; i < leg.steps.length; i++) {
       const step = leg.steps[i];
       const { duration, geometry, maneuver, intersections } = step;
-
-      // TODO do we still want this?
-      // const cameraRoute = getCameraRoute(
-      //   geometry.coordinates,
-      //   lowResGeom.coordinates
-      // );
 
       await navigate(map, {
         duration,
@@ -271,6 +247,43 @@ const navigateRoute = async (map, route, lowResGeom) => {
       });
     }
   }
+
+  return { routeComplete: true };
+};
+
+const navigateRoute = (map, route) => {
+  return new Promise(res => {
+    const fullCoords = route?.geometry?.coordinates;
+    const start = fullCoords[0];
+    const end = fullCoords[fullCoords.length - 1];
+
+    if (mapAssets[DESTINATION_PIN]) {
+      setMarkerLayer(map, end, DESTINATION_PIN);
+    }
+    if (mapAssets[PUCK]) {
+      setMarkerLayer(map, start, PUCK);
+    }
+
+    const initialBearing =
+      route?.legs?.[0]?.steps?.[0]?.maneuver?.bearing_after || 0;
+
+    // Ease to the start of the route
+    map.easeTo({
+      center: start,
+      zoom: 16,
+      speed: 0.2,
+      curve: 1,
+      duration: 1000,
+      pitch: 60,
+      bearing: initialBearing,
+    });
+
+    map.once('moveend', () => {
+      navigateSteps(map, route).then(e => {
+        res(e);
+      });
+    });
+  });
 };
 
 export { navigateRoute };

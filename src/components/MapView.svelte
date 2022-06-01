@@ -4,12 +4,13 @@
     config as configStore,
     route as routeStore,
     mapState as mapStateStore,
+    map as mapStore,
+    mapAssets as mapAssetsStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
   import { addFigmaImages } from '../add-figma-images';
-  import { navigateRoute } from '../navigate-route';
 
   const ROUTE_LINE_SOURCE_ID = 'route-line';
   const ROUTE_LINE_LAYER_ID = 'route-line';
@@ -30,9 +31,6 @@
 
   let map;
 
-  // This becomes populated with the names of images from Figma if they exist
-  let figmaMapAssets = [];
-
   const throttledSetMapState = throttle(() => {
     if (!map) return;
     const bearing = map.getBearing();
@@ -52,20 +50,28 @@
       ...mapState,
     });
 
+    mapStore.set(map);
+
     // Styledata isn't a completely reliable event
     map.once('styledata', () => {
       const loading = () => {
         if (!map.isStyleLoaded()) {
           setTimeout(loading, 150);
         } else {
-          addRouteLine();
           addFigmaImages(map)
             .then(addedIcons => {
-              figmaMapAssets = addedIcons;
+              mapAssetsStore.update(store => {
+                return Object.keys(store).reduce((acc, k) => {
+                  acc[k] = addedIcons.includes(k) ? true : false;
+                  return acc;
+                }, {});
+              });
+              console.log('Assets loaded');
             })
             .catch(err => {
               console.error(err);
             });
+          addRouteLine();
         }
       };
       loading();
@@ -81,28 +87,6 @@
       map.remove();
     }
   });
-
-  const addMapAssetImages = (iconName, coords) => {
-    map.addSource(iconName, {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: coords,
-        },
-      },
-    });
-
-    map.addLayer({
-      id: iconName,
-      type: 'symbol',
-      source: iconName,
-      layout: {
-        'icon-image': iconName,
-      },
-    });
-  };
 
   const addRouteLine = () => {
     if (!directionsApiResponse) return;
@@ -150,7 +134,8 @@
         },
       });
     } else {
-      map.getSource(ROUTE_LINE_SOURCE_ID).setData(geometry);
+      // TODO consider using low res geom for overview, then switch for turn by turn
+      map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
     }
 
     const { coordinates } = lowResGeom;
@@ -161,36 +146,10 @@
       bounds.extend(coord);
     }
 
+    map.setPitch(0);
     map.fitBounds(bounds, {
       padding: 20,
     });
-
-    // ----------------------
-
-    // Need to alter this into a new structure with a single line string and duration for maneuvers
-
-    // const navigationSteps = async () => {
-    //   for (const leg of route.legs) {
-    //     for (let i = 0; i < leg.steps.length; i++) {
-    //       const step = leg.steps[i];
-    //       const { distance, duration, geometry, maneuver } = step;
-    //       const nextManeuver = leg.steps?.[i + 1]?.maneuver || maneuver;
-    //       await navigateRoute(map, {
-    //         distance,
-    //         duration,
-    //         coordinates: geometry.coordinates,
-    //         maneuver,
-    //         nextManeuver,
-    //       });
-    //     }
-    //   }
-    // };
-
-    navigateRoute(map, route, lowResGeom);
-
-    // console.log(directionsApiResponse);
-
-    // ----------------------
   };
 
   $: {

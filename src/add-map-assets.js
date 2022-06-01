@@ -1,0 +1,46 @@
+import { mapAssets as mapAssetsStore } from './stores';
+import { PUCK } from './constants';
+
+let mapAssets = {};
+mapAssetsStore.subscribe(value => (mapAssets = value));
+
+export const setPuckLocation = (map, point) => {
+  if (!mapAssets[PUCK]) return;
+
+  const nextPuckLocation = {
+    type: 'Feature',
+    geometry: {
+      type: 'Point',
+      coordinates: point,
+    },
+  };
+
+  map.getSource(PUCK) && map.getSource(PUCK).setData(nextPuckLocation);
+};
+
+export const setMarkerLayer = (map, point, markerId) => {
+  if (!mapAssets[markerId]) {
+    console.warn(`${markerId} is not loaded.`);
+    return;
+  }
+  map.addSource(markerId, {
+    type: 'geojson',
+    data: {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: point,
+      },
+    },
+  });
+
+  map.addLayer({
+    id: markerId,
+    type: 'symbol',
+    source: markerId,
+    layout: {
+      'icon-image': markerId,
+      'icon-allow-overlap': true,
+    },
+  });
+};

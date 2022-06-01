@@ -6,7 +6,12 @@
   import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.min.js';
   import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
   import { fetchDirections } from '../fetch-directions';
-  import { config as configStore, route as routeStore } from '../stores';
+  import {
+    config as configStore,
+    route as routeStore,
+    map as mapStore,
+  } from '../stores';
+  import { navigateRoute } from '../navigate-route';
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
@@ -25,6 +30,11 @@
     }
   });
 
+  let map;
+  mapStore.subscribe(value => (map = value));
+
+  let route;
+
   const hasMinimumLocations = () => {
     return geocoders.map(g => g.center).filter(Boolean).length >= 2;
   };
@@ -40,6 +50,7 @@
     const response = await fetchDirections(...centers);
     // TODO handle bad response
     if (response) {
+      route = response?.routes?.[0];
       routeStore.set({
         locations: geocoders,
         response,
@@ -124,6 +135,11 @@
   const removeStop = id => {
     geocoders = geocoders.filter(g => g.id !== id);
   };
+
+  const runRoute = async () => {
+    const test = await navigateRoute(map, route);
+    console.log(test);
+  };
 </script>
 
 <div class="directions">
@@ -151,6 +167,7 @@
   <button class="button" disabled={disableSubmit} on:click={submitRequest}
     >Submit</button
   >
+  <button class="button" on:click={runRoute}>Run route</button>
 </div>
 
 <style>
