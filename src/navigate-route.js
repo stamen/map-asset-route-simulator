@@ -10,8 +10,16 @@ mapAssetsStore.subscribe(value => (mapAssets = value));
 
 const LOOK_AHEAD_DISTANCE = 1;
 const DURATION_MULTIPLIER = 25;
-const CAMERA_ALTITUDE = 100;
-const POV_DISTANCE = CAMERA_ALTITUDE * -1.5;
+const CAMERA_ALTITUDE = 1000;
+
+const getPovDistance = (pitch, altitude) => {
+  const tangent = Math.tan((pitch * Math.PI) / 180);
+  const opposite = altitude;
+  const adjacent = tangent * opposite;
+  return adjacent * -1;
+};
+
+let povDistance;
 
 const calculatePointDistance = (before, after, isClockwise) => {
   let leftDistance = (a, b) => {
@@ -70,7 +78,7 @@ const getPovAndLookAtPoint = (point, bearing) => {
     bearing
   );
 
-  const povPoint = geolib.computeDestinationPoint(point, POV_DISTANCE, bearing);
+  const povPoint = geolib.computeDestinationPoint(point, povDistance, bearing);
 
   return { pov: povPoint, lookAt: lookAtPoint };
 };
@@ -251,7 +259,9 @@ const navigateSteps = async (map, route) => {
   return { routeComplete: true };
 };
 
-const navigateRoute = (map, route) => {
+const navigateRoute = (map, route, options = { pitch: 60 }) => {
+  const { pitch } = options;
+  povDistance = getPovDistance(pitch, CAMERA_ALTITUDE);
   return new Promise(res => {
     const fullCoords = route?.geometry?.coordinates;
     const start = fullCoords[0];
