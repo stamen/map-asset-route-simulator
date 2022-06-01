@@ -49,7 +49,9 @@
   }
 
   const submitRequest = async () => {
-    const centers = geocoders.map(g => g.center).filter(Boolean);
+    const centers = geocoders
+      .map(g => (g.center ? g.center : removeStop(g.id)))
+      .filter(Boolean);
     const response = await fetchDirections(...centers);
     // TODO handle bad response
     if (response) {
