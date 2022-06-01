@@ -143,8 +143,9 @@
     geocoders = geocoders.filter(g => g.id !== id);
   };
 
-  const clearRoute = () => {
+  const clearRoute = async () => {
     geocoders = DEFAULT_GEOCODERS;
+    await tick();
     setGeocoderText();
     routeStore.set({
       locations: geocoders,
