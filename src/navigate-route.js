@@ -15,6 +15,7 @@ const LOOK_AHEAD_DISTANCE = 1;
 const DURATION_MULTIPLIER = 25;
 const CAMERA_ALTITUDE = 1000;
 
+// Calculates the distance for the camera to be away from the puck based on pitch and altitude
 const getPovDistance = (pitch, altitude) => {
   const tangent = Math.tan((pitch * Math.PI) / 180);
   const opposite = altitude;
@@ -24,6 +25,7 @@ const getPovDistance = (pitch, altitude) => {
 
 let povDistance;
 
+// Calculates the point distance on a 360 degree circle between two bearings based on direction being turned
 const calculatePointDistance = (before, after, isClockwise) => {
   let leftDistance = (a, b) => {
     let val = a + (360 - b);
@@ -42,6 +44,7 @@ const calculatePointDistance = (before, after, isClockwise) => {
   return distance;
 };
 
+// Calculates the next bearing based on direction and phase of maneuver
 const calculateBearing = (before, after, isClockwise, phase) => {
   let distance = calculatePointDistance(before, after, isClockwise);
 
@@ -62,6 +65,7 @@ const calculateBearing = (before, after, isClockwise, phase) => {
   return bearing;
 };
 
+// Smooths the bearing when camera is following route
 const smoothBearing = (bearing, nextBearing) => {
   const leftDistance = calculatePointDistance(bearing, nextBearing, false);
   const rightDistance = calculatePointDistance(bearing, nextBearing, true);
@@ -74,6 +78,7 @@ const smoothBearing = (bearing, nextBearing) => {
   return smoothed;
 };
 
+// Gets the POV point and lookAt point for the camera
 const getPovAndLookAtPoint = (point, bearing) => {
   const lookAtPoint = geolib.computeDestinationPoint(
     point,
@@ -86,6 +91,7 @@ const getPovAndLookAtPoint = (point, bearing) => {
   return { pov: povPoint, lookAt: lookAtPoint };
 };
 
+// Handles maneuvers separately from following the route with a pause
 const handleManeuver = (map, maneuver, bearingBefore) => {
   return new Promise(resolve => {
     let { bearing_after, location, modifier, type } = maneuver;
@@ -150,6 +156,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
   });
 };
 
+// Navigates a route step with options passed from the step object
 const navigate = (map, options) => {
   return new Promise(async resolve => {
     const { duration, coordinates, maneuver } = options;
@@ -243,6 +250,7 @@ const navigate = (map, options) => {
   });
 };
 
+// Cycles through all steps in a route to navigate piece by piece with appropriate speed
 const navigateSteps = async (map, route) => {
   // Possible we want to reconsider using the lowResGeom
   for (const leg of route.legs) {
@@ -262,6 +270,7 @@ const navigateSteps = async (map, route) => {
   return { routeComplete: true };
 };
 
+// Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
   const { pitch } = routingOptions;
   povDistance = getPovDistance(pitch, CAMERA_ALTITUDE);
