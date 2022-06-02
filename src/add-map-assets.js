@@ -4,6 +4,7 @@ import { PUCK } from './constants';
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
+// This function lets us continually feed in a new lat/lng to the source of puck to move it along the route
 export const setPuckLocation = (map, point) => {
   if (!mapAssets[PUCK]) return;
 
@@ -43,4 +44,9 @@ export const setMarkerLayer = (map, point, markerId) => {
       'icon-allow-overlap': true,
     },
   });
+};
+
+export const removeMarkerLayer = (map, markerId) => {
+  map.removeLayer(markerId);
+  map.removeSource(markerId);
 };

@@ -3,7 +3,11 @@ import * as geolib from 'geolib';
 import mapboxgl from 'mapbox-gl';
 import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
-import { setPuckLocation, setMarkerLayer } from './add-map-assets';
+import {
+  setPuckLocation,
+  setMarkerLayer,
+  removeMarkerLayer,
+} from './add-map-assets';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
@@ -267,6 +271,15 @@ const navigateSteps = async (map, route) => {
     }
   }
 
+  // For now remove map assets on move
+  map.once('move', () => {
+    if (map.getLayer(DESTINATION_PIN)) {
+      removeMarkerLayer(map, DESTINATION_PIN);
+    }
+    if (map.getLayer(PUCK)) {
+      removeMarkerLayer(map, PUCK);
+    }
+  });
   return { routeComplete: true };
 };
 
