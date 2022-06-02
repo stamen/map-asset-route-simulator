@@ -4,14 +4,14 @@
     config as configStore,
     route as routeStore,
     mapState as mapStateStore,
+    map as mapStore,
+    mapAssets as mapAssetsStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
   import { addFigmaImages } from '../add-figma-images';
-
-  const ROUTE_LINE_SOURCE_ID = 'route-line';
-  const ROUTE_LINE_LAYER_ID = 'route-line';
+  import { ROUTE_LINE_SOURCE_ID, ROUTE_LINE_LAYER_ID } from '../constants';
 
   export let id;
   export let url;
@@ -28,9 +28,6 @@
   mapboxgl.accessToken = mapboxGlAccessToken;
 
   let map;
-
-  // This becomes populated with the names of images from Figma if they exist
-  let figmaMapAssets = [];
 
   const throttledSetMapState = throttle(() => {
     if (!map) return;
@@ -51,20 +48,28 @@
       ...mapState,
     });
 
+    mapStore.set(map);
+
     // Styledata isn't a completely reliable event
     map.once('styledata', () => {
       const loading = () => {
         if (!map.isStyleLoaded()) {
           setTimeout(loading, 150);
         } else {
-          addRouteLine();
           addFigmaImages(map)
             .then(addedIcons => {
-              figmaMapAssets = addedIcons;
+              mapAssetsStore.update(store => {
+                return Object.keys(store).reduce((acc, k) => {
+                  acc[k] = addedIcons.includes(k) ? true : false;
+                  return acc;
+                }, {});
+              });
+              console.log('Assets loaded');
             })
             .catch(err => {
               console.error(err);
             });
+          addRouteLine();
         }
       };
       loading();
@@ -81,38 +86,36 @@
     }
   });
 
-  const addMapAssetImages = (iconName, coords) => {
-    map.addSource(iconName, {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: coords,
-        },
-      },
-    });
-
-    map.addLayer({
-      id: iconName,
-      type: 'symbol',
-      source: iconName,
-      layout: {
-        'icon-image': iconName,
-      },
-    });
-  };
-
   const addRouteLine = () => {
     if (!directionsApiResponse) return;
     const { routes } = directionsApiResponse;
     // Ignore alternative routes if there are any
     const route = routes[0];
-    const { geometry } = route;
+    // TODO: Do we care about the low res geometry?
+    const { geometry: lowResGeom } = route;
+
+    let features = route.legs.reduce((acc, leg) => {
+      const steps = leg.steps.reduce(
+        (acc, step) => acc.concat(step.geometry),
+        []
+      );
+      acc = acc.concat(steps);
+      return acc;
+    }, []);
+
+    features = features.map(f => ({ type: 'Feature', geometry: f }));
+
+    const highResGeom = {
+      type: 'FeatureCollection',
+      features: features,
+    };
 
     const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
     if (!sourceLoaded) {
-      map.addSource(ROUTE_LINE_SOURCE_ID, { type: 'geojson', data: geometry });
+      map.addSource(ROUTE_LINE_SOURCE_ID, {
+        type: 'geojson',
+        data: highResGeom,
+      });
       // TODO make sure this layer name doesn't exist
       // TODO decide if we want to allow empty layer in style or just add our own
       map.addLayer({
@@ -129,10 +132,11 @@
         },
       });
     } else {
-      map.getSource(ROUTE_LINE_SOURCE_ID).setData(geometry);
+      // TODO consider using low res geom for overview, then switch for turn by turn
+      map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
     }
 
-    const { coordinates } = geometry;
+    const { coordinates } = lowResGeom;
 
     const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
 
@@ -140,6 +144,7 @@
       bounds.extend(coord);
     }
 
+    map.setPitch(0);
     map.fitBounds(bounds, {
       padding: 20,
     });

@@ -28,10 +28,12 @@
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
     "@mapbox/mapbox-gl-geocoder": "^5.0.1",
+    "@turf/turf": "^6.5.0",
     "carbon-components-svelte": "^0.64.0",
     "figmasset": "git+https://github.com/stamen/figmasset#browser-compatible",
+    "geolib": "^3.3.3",
     "lodash.throttle": "^4.1.1",
-    "mapbox-gl": "^1.13.1",
+    "mapbox-gl": "^2.8.2",
     "sirv-cli": "^1.0.0",
     "svelte-fa": "^2.4.0"
   },
