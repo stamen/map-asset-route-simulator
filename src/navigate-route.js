@@ -17,7 +17,13 @@ mapAssetsStore.subscribe(value => (mapAssets = value));
 
 let routingOptions;
 let maneuverOptions;
-configStore.subscribe(value => ({ routingOptions, maneuverOptions } = value));
+let speedOptions;
+let durationMultiplier;
+configStore.subscribe(
+  value =>
+    ({ routingOptions, maneuverOptions, speedOptions, durationMultiplier } =
+      value)
+);
 
 function scale(number, inMin, inMax, outMin, outMax) {
   return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
@@ -107,8 +113,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
       isClockwise
     );
 
-    const animationDuration =
-      (pointDistance * routingOptions.durationMultiplier) / 5;
+    const animationDuration = (pointDistance * durationMultiplier) / 5;
 
     function frame(time) {
       if (!start) start = time;
@@ -137,11 +142,13 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
   });
 };
 
-const easePitchAndZoom = (before, after, distanceToCover, max) => {
-  const phase = 1 - scale(Math.min(distanceToCover, max), 0, max, 0, 1);
+// Eases the pitch and zoom using a phase based on lead distance
+const easePitchAndZoom = (before, after, distanceToCover, maxDistance) => {
+  const phase =
+    1 - scale(Math.min(distanceToCover, maxDistance), 0, maxDistance, 0, 1);
 
-  let pitch = routingOptions.pitch;
-  let zoom = routingOptions.zoom;
+  let pitch = before.pitch;
+  let zoom = before.zoom;
 
   if (after.pitch !== undefined) {
     const pitchIsIncreasing = after.pitch > before.pitch;
@@ -171,6 +178,15 @@ const navigate = (map, options) => {
   return new Promise(async resolve => {
     const { distance, duration, coordinates, maneuver, nextManeuver } = options;
 
+    // In meters per second
+    const speed = distance / duration;
+
+    // If a segment moves faster, use the speedOptions
+    let segmentRoutingOptions =
+      speedOptions?.speed && speedOptions?.speed < speed
+        ? { ...routingOptions, ...speedOptions }
+        : routingOptions;
+
     if (maneuver.type === 'arrive') {
       return resolve({ segmentComplete: true });
     }
@@ -186,7 +202,7 @@ const navigate = (map, options) => {
       .concat(Array(lookAheadIndex).fill(coordinates[coordinates.length - 1]));
 
     // multiplier is arbitrary. Duration is in seconds, but actual realistic timing is very slow
-    const animationDuration = duration * routingOptions.durationMultiplier;
+    const animationDuration = duration * durationMultiplier;
     // get the overall distance of each route so we can interpolate along them
     const routeDistance = turf.lineDistance(turf.lineString(targetRoute));
     const lookAheadDistance = turf.lineDistance(
@@ -244,7 +260,7 @@ const navigate = (map, options) => {
 
       const leadDistance = maneuverOptions?.leadDistance;
 
-      // ease into
+      // ease into maneuver
       if (leadDistance && distanceLeft <= leadDistance) {
         if (!easeInPitch) easeInPitch = map.getPitch();
         if (!easeInZoom) easeInZoom = map.getZoom();
@@ -260,11 +276,11 @@ const navigate = (map, options) => {
             pitch:
               maneuverBehavior?.pitch !== undefined
                 ? maneuverBehavior?.pitch
-                : routingOptions.pitch,
+                : segmentRoutingOptions.pitch,
             zoom:
               maneuverBehavior?.zoom !== undefined
                 ? maneuverBehavior?.zoom
-                : routingOptions.zoom,
+                : segmentRoutingOptions.zoom,
           },
           distanceLeft,
           leadDistance
@@ -273,7 +289,7 @@ const navigate = (map, options) => {
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
       }
-      // ease out of
+      // ease out of maneuver
       else if (leadDistance && distance * phase <= leadDistance) {
         if (!easeOutPitch) easeOutPitch = map.getPitch();
         if (!easeOutZoom) easeOutZoom = map.getZoom();
@@ -284,8 +300,8 @@ const navigate = (map, options) => {
             zoom: easeOutZoom,
           },
           {
-            pitch: routingOptions.pitch,
-            zoom: routingOptions.zoom,
+            pitch: segmentRoutingOptions.pitch,
+            zoom: segmentRoutingOptions.zoom,
           },
           leadDistance - distance * phase,
           leadDistance
@@ -293,8 +309,8 @@ const navigate = (map, options) => {
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
       } else {
-        pitch = routingOptions.pitch;
-        zoom = routingOptions.zoom;
+        pitch = segmentRoutingOptions.pitch;
+        zoom = segmentRoutingOptions.zoom;
       }
 
       map.jumpTo({
