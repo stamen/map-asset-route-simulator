@@ -19,31 +19,39 @@ export const setPuckLocation = (map, point) => {
   map.getSource(PUCK) && map.getSource(PUCK).setData(nextPuckLocation);
 };
 
-export const setMarkerLayer = (map, point, markerId) => {
+export const setMarkerLayer = (map, point, markerId, pitchAlignment) => {
   if (!mapAssets[markerId]) {
     console.warn(`${markerId} is not loaded.`);
     return;
   }
-  map.addSource(markerId, {
-    type: 'geojson',
-    data: {
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: point,
+  const hasSource = map.getSource(markerId);
+  if (!hasSource) {
+    map.addSource(markerId, {
+      type: 'geojson',
+      data: {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: point,
+        },
       },
-    },
-  });
+    });
+  }
 
-  map.addLayer({
-    id: markerId,
-    type: 'symbol',
-    source: markerId,
-    layout: {
-      'icon-image': markerId,
-      'icon-allow-overlap': true,
-    },
-  });
+  const hasLayer = map.getLayer(markerId);
+
+  if (!hasLayer) {
+    map.addLayer({
+      id: markerId,
+      type: 'symbol',
+      source: markerId,
+      layout: {
+        'icon-image': markerId,
+        'icon-allow-overlap': true,
+        'icon-pitch-alignment': pitchAlignment,
+      },
+    });
+  }
 };
 
 export const removeMarkerLayer = (map, markerId) => {

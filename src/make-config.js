@@ -48,14 +48,26 @@ const makeConfig = localConfig => {
     zoom: 13.25,
   };
 
-  const defaultRoutingOptions = { pitch: 60 };
+  const defaultDurationMultiplier = 50;
+
+  const defaultRoutingOptions = { pitch: 60, zoom: 16, durationMultiplier: 50 };
+
+  // TODO we should do deep merge just in case
+  const routingOptions = {
+    ...defaultRoutingOptions,
+    ...(localConfig?.routingOptions || {}),
+  };
+
+  const nextLocalConfig = JSON.parse(JSON.stringify(localConfig));
+  nextLocalConfig?.routingOptions && delete nextLocalConfig.routingOptions;
 
   const config = {
     devices: defaultDevices,
     styles: defaultStyles,
     mapState: defaultMapState,
-    routingOptions: defaultRoutingOptions,
-    ...localConfig,
+    durationMultiplier: defaultDurationMultiplier,
+    routingOptions,
+    ...nextLocalConfig,
   };
 
   return config;
