@@ -51,17 +51,20 @@ const makeConfig = localConfig => {
   const defaultRoutingOptions = { pitch: 60, zoom: 16, durationMultiplier: 50 };
 
   // TODO we should do deep merge just in case
-  routingOptions = { ...defaultRoutingOptions, ...localConfig.routingOptions };
+  const routingOptions = {
+    ...defaultRoutingOptions,
+    ...(localConfig?.routingOptions || {}),
+  };
 
-  const nextLocalConfig = localConfig;
-  delete nextLocalConfig.routingOptions;
+  const nextLocalConfig = JSON.parse(JSON.stringify(localConfig));
+  nextLocalConfig?.routingOptions && delete nextLocalConfig.routingOptions;
 
   const config = {
     devices: defaultDevices,
     styles: defaultStyles,
     mapState: defaultMapState,
     routingOptions,
-    ...localConfig,
+    ...nextLocalConfig,
   };
 
   return config;

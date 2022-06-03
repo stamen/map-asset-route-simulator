@@ -90,7 +90,7 @@ const smoothBearing = (bearing, nextBearing) => {
 // Handles maneuvers separately from following the route with a pause
 const handleManeuver = (map, maneuver, bearingBefore) => {
   return new Promise(resolve => {
-    let { bearing_after, location, modifier, type } = maneuver;
+    let { bearing_after, location, modifier } = maneuver;
 
     let start;
     let bearing = bearingBefore;
@@ -98,6 +98,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
     if (!modifier || !bearing_after || modifier.includes('straight'))
       return resolve(bearing);
 
+    // TODO: modifier 'uturn' is unhandled and will always turn right
     const isClockwise = modifier.includes('left') ? false : true;
 
     const pointDistance = calculatePointDistance(
@@ -232,8 +233,8 @@ const navigate = (map, options) => {
 
       setPuckLocation(map, alongRoute);
 
-      let pitch = routingOptions.pitch;
-      let zoom = routingOptions.zoom;
+      let pitch;
+      let zoom;
 
       // calculate the bearing based on the angle between the point we're at in the route and the look ahead point
       let nextBearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
@@ -291,6 +292,9 @@ const navigate = (map, options) => {
         );
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
+      } else {
+        pitch = routingOptions.pitch;
+        zoom = routingOptions.zoom;
       }
 
       map.jumpTo({
