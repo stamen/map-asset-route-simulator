@@ -1,7 +1,10 @@
 import * as turf from '@turf/turf';
 import * as geolib from 'geolib';
-import mapboxgl from 'mapbox-gl';
-import { config as configStore, mapAssets as mapAssetsStore } from './stores';
+import {
+  config as configStore,
+  map,
+  mapAssets as mapAssetsStore,
+} from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import {
   setPuckLocation,
@@ -15,19 +18,9 @@ mapAssetsStore.subscribe(value => (mapAssets = value));
 let routingOptions;
 configStore.subscribe(value => ({ routingOptions } = value));
 
-const LOOK_AHEAD_DISTANCE = 1;
-const DURATION_MULTIPLIER = 25;
-const CAMERA_ALTITUDE = 1000;
-
-// Calculates the distance for the camera to be away from the puck based on pitch and altitude
-const getPovDistance = (pitch, altitude) => {
-  const tangent = Math.tan((pitch * Math.PI) / 180);
-  const opposite = altitude;
-  const adjacent = tangent * opposite;
-  return adjacent * -1;
-};
-
-let povDistance;
+const DURATION_MULTIPLIER = 50;
+const MANEUVER_LEAD_TIME = 1000;
+const LEAD_DISTANCE = 125;
 
 // Calculates the point distance on a 360 degree circle between two bearings based on direction being turned
 const calculatePointDistance = (before, after, isClockwise) => {
@@ -48,14 +41,7 @@ const calculatePointDistance = (before, after, isClockwise) => {
   return distance;
 };
 
-// Calculates the next bearing based on direction and phase of maneuver
-const calculateBearing = (before, after, isClockwise, phase) => {
-  let distance = calculatePointDistance(before, after, isClockwise);
-
-  let bearing = !isClockwise
-    ? before - distance * phase
-    : before + distance * phase;
-
+const normalizeBearing = bearing => {
   if (bearing > 360) {
     bearing = bearing - 360;
   }
@@ -65,8 +51,18 @@ const calculateBearing = (before, after, isClockwise, phase) => {
   if (bearing === 360) {
     bearing = 0;
   }
-
   return bearing;
+};
+
+// Calculates the next bearing based on direction and phase of maneuver
+const calculateBearing = (before, after, isClockwise, phase) => {
+  let distance = calculatePointDistance(before, after, isClockwise);
+
+  let bearing = !isClockwise
+    ? before - distance * phase
+    : before + distance * phase;
+
+  return normalizeBearing(bearing);
 };
 
 // Smooths the bearing when camera is following route
@@ -80,19 +76,6 @@ const smoothBearing = (bearing, nextBearing) => {
   const smoothed = calculateBearing(bearing, nextBearing, isClockwise, 0.25);
 
   return smoothed;
-};
-
-// Gets the POV point and lookAt point for the camera
-const getPovAndLookAtPoint = (point, bearing) => {
-  const lookAtPoint = geolib.computeDestinationPoint(
-    point,
-    LOOK_AHEAD_DISTANCE,
-    bearing
-  );
-
-  const povPoint = geolib.computeDestinationPoint(point, povDistance, bearing);
-
-  return { pov: povPoint, lookAt: lookAtPoint };
 };
 
 // Handles maneuvers separately from following the route with a pause
@@ -121,13 +104,6 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
         return resolve(bearing);
       }
 
-      const camera = map.getFreeCameraOptions();
-
-      const maneuverPoint = {
-        longitude: location[0],
-        latitude: location[1],
-      };
-
       bearing = calculateBearing(
         bearingBefore,
         bearing_after,
@@ -135,23 +111,10 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
         phase
       );
 
-      const { pov, lookAt } = getPovAndLookAtPoint(maneuverPoint, bearing);
-
-      camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-        {
-          lng: pov.longitude,
-          lat: pov.latitude,
-        },
-        CAMERA_ALTITUDE
-      );
-
-      // tell the camera to look at a point along the route
-      camera.lookAtPoint({
-        lng: lookAt.longitude,
-        lat: lookAt.latitude,
+      map.jumpTo({
+        center: location,
+        bearing,
       });
-
-      map.setFreeCameraOptions(camera);
 
       window.requestAnimationFrame(frame);
     }
@@ -160,10 +123,59 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
   });
 };
 
+const easeManeuver = (before, after, maneuver, durationToManeuver, max) => {
+  let { modifier } = maneuver;
+
+  function scale(number, inMin, inMax, outMin, outMax) {
+    return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+  }
+
+  const phase = 1 - scale(Math.min(durationToManeuver, max), 0, max, 0, 1);
+
+  // Bearing
+  let bearing = before.bearing;
+
+  if (before.bearing && modifier && before.bearing !== after.bearing) {
+    const isClockwise = modifier.includes('left') ? false : true;
+
+    bearing = calculateBearing(
+      before.bearing,
+      after.bearing,
+      isClockwise,
+      phase
+    );
+  }
+
+  let pitch = routingOptions.pitch;
+  let zoom = routingOptions.zoom;
+
+  if (after.pitch) {
+    const pitchIsIncreasing = after.pitch > before.pitch;
+    const minPitch = Math.min(before.pitch, after.pitch);
+    const maxPitch = Math.max(before.pitch, after.pitch);
+
+    pitch = pitchIsIncreasing
+      ? scale(phase, 0, 1, minPitch, maxPitch)
+      : scale(1 - phase, 0, 1, minPitch, maxPitch);
+  }
+
+  if (after.zoom) {
+    const zoomIsIncreasing = after.zoom > before.zoom;
+    const minZoom = Math.min(before.zoom, after.zoom);
+    const maxZoom = Math.max(before.zoom, after.zoom);
+
+    zoom = zoomIsIncreasing
+      ? scale(phase, 0, 1, minZoom, maxZoom)
+      : scale(1 - phase, 0, 1, minZoom, maxZoom);
+  }
+
+  return { bearing, pitch, zoom };
+};
+
 // Navigates a route step with options passed from the step object
 const navigate = (map, options) => {
   return new Promise(async resolve => {
-    const { duration, coordinates, maneuver } = options;
+    const { distance, duration, coordinates, maneuver, nextManeuver } = options;
 
     if (maneuver.type === 'arrive') {
       return resolve({ segmentComplete: true });
@@ -186,6 +198,11 @@ const navigate = (map, options) => {
     const lookAheadDistance = turf.lineDistance(
       turf.lineString(lookAheadRoute)
     );
+
+    let easeInPitch;
+    let easeInZoom;
+    let easeOutPitch;
+    let easeOutZoom;
 
     let start;
 
@@ -210,8 +227,6 @@ const navigate = (map, options) => {
         return resolve({ segmentComplete: true });
       }
 
-      const camera = map.getFreeCameraOptions();
-
       let lookAheadPoint = {
         longitude: alongLookAhead[0],
         latitude: alongLookAhead[1],
@@ -224,28 +239,70 @@ const navigate = (map, options) => {
 
       setPuckLocation(map, alongRoute);
 
+      let pitch = routingOptions.pitch;
+      let zoom = routingOptions.zoom;
+
       // calculate the bearing based on the angle between the point we're at in the route and the look ahead point
       let nextBearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
-
       bearing = smoothBearing(bearing, nextBearing);
 
-      const { pov, lookAt } = getPovAndLookAtPoint(routePoint, bearing);
+      const distanceLeft = distance - distance * phase;
 
-      camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-        {
-          lng: pov.longitude,
-          lat: pov.latitude,
-        },
-        CAMERA_ALTITUDE
-      );
+      // ease into
+      if (distanceLeft <= LEAD_DISTANCE) {
+        if (!easeInPitch) easeInPitch = map.getPitch();
+        if (!easeInZoom) easeInZoom = map.getZoom();
 
-      // tell the camera to look at a point along the route
-      camera.lookAtPoint({
-        lng: lookAt.longitude,
-        lat: lookAt.latitude,
+        const maneuverBehavior =
+          routingOptions?.maneuverBehavior?.[nextManeuver.type];
+
+        const easedPosition = easeManeuver(
+          {
+            pitch: easeInPitch,
+            zoom: easeInZoom,
+          },
+          {
+            pitch: maneuverBehavior?.pitch || routingOptions.pitch,
+            zoom: maneuverBehavior?.zoom || routingOptions.zoom,
+          },
+          nextManeuver,
+          distanceLeft,
+          LEAD_DISTANCE
+        );
+        pitch = easedPosition.pitch;
+        zoom = easedPosition.zoom;
+      }
+      // ease out of
+      else if (animationDuration * phase <= MANEUVER_LEAD_TIME) {
+        if (!easeOutPitch) easeOutPitch = map.getPitch();
+        if (!easeOutZoom) easeOutZoom = map.getZoom();
+
+        const maneuverBehavior =
+          routingOptions?.maneuverBehavior?.[maneuver.type];
+
+        const easedPosition = easeManeuver(
+          {
+            pitch: easeOutPitch,
+            zoom: easeOutZoom,
+          },
+          {
+            pitch: routingOptions.pitch,
+            zoom: routingOptions.zoom,
+          },
+          maneuver,
+          LEAD_DISTANCE - distance * phase,
+          LEAD_DISTANCE
+        );
+        pitch = easedPosition.pitch;
+        zoom = easedPosition.zoom;
+      }
+
+      map.jumpTo({
+        center: alongRoute,
+        zoom,
+        pitch,
+        bearing,
       });
-
-      map.setFreeCameraOptions(camera);
 
       window.requestAnimationFrame(frame);
     }
@@ -260,13 +317,16 @@ const navigateSteps = async (map, route) => {
   for (const leg of route.legs) {
     for (let i = 0; i < leg.steps.length; i++) {
       const step = leg.steps[i];
-      const { duration, geometry, maneuver, intersections } = step;
+      const { distance, duration, geometry, maneuver, intersections } = step;
+      const nextManeuver = leg.steps?.[i + 1]?.maneuver;
 
       await navigate(map, {
         duration,
+        distance,
         coordinates: geometry.coordinates,
         maneuver,
         intersections,
+        nextManeuver,
       });
     }
   }
@@ -285,8 +345,6 @@ const navigateSteps = async (map, route) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
-  const { pitch } = routingOptions;
-  povDistance = getPovDistance(pitch, CAMERA_ALTITUDE);
   return new Promise(res => {
     const fullCoords = route?.geometry?.coordinates;
     const start = fullCoords[0];

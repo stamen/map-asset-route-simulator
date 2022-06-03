@@ -48,7 +48,8 @@ const makeConfig = localConfig => {
     zoom: 13.25,
   };
 
-  const defaultRoutingOptions = { pitch: 60 };
+  // TODO these routing options should be combined with any from local instead of overwrite
+  const defaultRoutingOptions = { pitch: 60, zoom: 16 };
 
   const config = {
     devices: defaultDevices,
