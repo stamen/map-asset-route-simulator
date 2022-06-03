@@ -367,10 +367,10 @@ const navigateRoute = (map, route) => {
     const end = fullCoords[fullCoords.length - 1];
 
     if (mapAssets[DESTINATION_PIN]) {
-      setMarkerLayer(map, end, DESTINATION_PIN);
+      setMarkerLayer(map, end, DESTINATION_PIN, 'viewport');
     }
     if (mapAssets[PUCK]) {
-      setMarkerLayer(map, start, PUCK);
+      setMarkerLayer(map, start, PUCK, 'map');
     }
 
     const initialBearing =

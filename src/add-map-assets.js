@@ -19,7 +19,7 @@ export const setPuckLocation = (map, point) => {
   map.getSource(PUCK) && map.getSource(PUCK).setData(nextPuckLocation);
 };
 
-export const setMarkerLayer = (map, point, markerId) => {
+export const setMarkerLayer = (map, point, markerId, pitchAlignment) => {
   if (!mapAssets[markerId]) {
     console.warn(`${markerId} is not loaded.`);
     return;
@@ -35,6 +35,8 @@ export const setMarkerLayer = (map, point, markerId) => {
     },
   });
 
+  console.log(pitchAlignment);
+
   map.addLayer({
     id: markerId,
     type: 'symbol',
@@ -42,6 +44,7 @@ export const setMarkerLayer = (map, point, markerId) => {
     layout: {
       'icon-image': markerId,
       'icon-allow-overlap': true,
+      'icon-pitch-alignment': pitchAlignment,
     },
   });
 };
