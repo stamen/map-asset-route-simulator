@@ -25,9 +25,10 @@ configStore.subscribe(
       value)
 );
 
-function scale(number, inMin, inMax, outMin, outMax) {
+// Scale a number within a range to a number in a different range
+const scale = (number, inMin, inMax, outMin, outMax) => {
   return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
-}
+};
 
 // Calculates the point distance on a 360 degree circle between two bearings based on direction being turned
 const calculatePointDistance = (before, after, isClockwise) => {
@@ -48,6 +49,7 @@ const calculatePointDistance = (before, after, isClockwise) => {
   return distance;
 };
 
+// Normalizes a bearing >360 or <0 to within a 360 degree range
 const normalizeBearing = bearing => {
   if (bearing > 360) {
     bearing = bearing - 360;
@@ -93,7 +95,8 @@ const smoothBearing = (bearing, nextBearing) => {
   return smoothed;
 };
 
-// Handles maneuvers separately from following the route with a pause
+// Handles maneuvers separately from following the route
+// This adjusts the bearing of the map based on the turn's direction
 const handleManeuver = (map, maneuver, bearingBefore) => {
   return new Promise(resolve => {
     let { bearing_after, location, modifier } = maneuver;
@@ -113,7 +116,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
       isClockwise
     );
 
-    const animationDuration = (pointDistance * durationMultiplier) / 5;
+    const animationDuration = pointDistance * durationMultiplier;
 
     function frame(time) {
       if (!start) start = time;
@@ -187,12 +190,14 @@ const navigate = (map, options) => {
         ? { ...routingOptions, ...speedOptions }
         : routingOptions;
 
+    // If we've arrived, resolve early
     if (maneuver.type === 'arrive') {
       return resolve({ segmentComplete: true });
     }
 
     const currentBearing =
       map.getBearing() < 0 ? 360 + map.getBearing() : map.getBearing();
+    // The maneuver in the step object is that which preceded the segment
     let bearing = await handleManeuver(map, maneuver, currentBearing);
 
     const targetRoute = coordinates;
@@ -308,11 +313,14 @@ const navigate = (map, options) => {
         );
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
-      } else {
+      }
+      // During a segment not near a maneuver
+      else {
         pitch = segmentRoutingOptions.pitch;
         zoom = segmentRoutingOptions.zoom;
       }
 
+      // We are using map.jumpTo since it requires less translation than using a camera object
       map.jumpTo({
         center: alongRoute,
         zoom,
@@ -379,11 +387,11 @@ const navigateRoute = (map, route) => {
     // Ease to the start of the route
     map.easeTo({
       center: start,
-      zoom: 16,
       speed: 0.2,
       curve: 1,
       duration: 1000,
-      pitch: 60,
+      zoom: routingOptions.zoom,
+      pitch: routingOptions.pitch,
       bearing: initialBearing,
     });
 
