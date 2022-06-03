@@ -48,14 +48,19 @@ const makeConfig = localConfig => {
     zoom: 13.25,
   };
 
-  // TODO these routing options should be combined with any from local instead of overwrite
-  const defaultRoutingOptions = { pitch: 60, zoom: 16 };
+  const defaultRoutingOptions = { pitch: 60, zoom: 16, durationMultiplier: 50 };
+
+  // TODO we should do deep merge just in case
+  routingOptions = { ...defaultRoutingOptions, ...localConfig.routingOptions };
+
+  const nextLocalConfig = localConfig;
+  delete nextLocalConfig.routingOptions;
 
   const config = {
     devices: defaultDevices,
     styles: defaultStyles,
     mapState: defaultMapState,
-    routingOptions: defaultRoutingOptions,
+    routingOptions,
     ...localConfig,
   };
 

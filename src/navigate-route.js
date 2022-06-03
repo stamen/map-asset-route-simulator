@@ -16,11 +16,12 @@ let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
 let routingOptions;
-configStore.subscribe(value => ({ routingOptions } = value));
+let maneuverOptions;
+configStore.subscribe(value => ({ routingOptions, maneuverOptions } = value));
 
-const DURATION_MULTIPLIER = 50;
-const MANEUVER_LEAD_TIME = 1000;
-const LEAD_DISTANCE = 125;
+function scale(number, inMin, inMax, outMin, outMax) {
+  return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+}
 
 // Calculates the point distance on a 360 degree circle between two bearings based on direction being turned
 const calculatePointDistance = (before, after, isClockwise) => {
@@ -72,8 +73,16 @@ const smoothBearing = (bearing, nextBearing) => {
 
   let isClockwise = rightDistance < leftDistance ? true : false;
 
+  const threshhold = 5;
+
+  let distance = isClockwise ? rightDistance : leftDistance;
+  distance = Math.min(distance, threshhold);
+
+  // as distance gets closer to 0, we want phase to increase
+  const phase = scale(threshhold - distance, 0, threshhold, 0.05, 0.25);
+
   // TODO Revisit the hardcoded 0.25
-  const smoothed = calculateBearing(bearing, nextBearing, isClockwise, 0.25);
+  const smoothed = calculateBearing(bearing, nextBearing, isClockwise, phase);
 
   return smoothed;
 };
@@ -86,15 +95,19 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
     let start;
     let bearing = bearingBefore;
 
-    // This is to prevent stopping on the route during slight turns like on or off ramps
-    if (!type.includes('turn')) return resolve(bearing);
+    if (!modifier || !bearing_after || modifier.includes('straight'))
+      return resolve(bearing);
 
     const isClockwise = modifier.includes('left') ? false : true;
 
+    const pointDistance = calculatePointDistance(
+      bearingBefore,
+      bearing_after,
+      isClockwise
+    );
+
     const animationDuration =
-      (calculatePointDistance(bearingBefore, bearing_after, isClockwise) *
-        DURATION_MULTIPLIER) /
-      5;
+      (pointDistance * routingOptions.durationMultiplier) / 5;
 
     function frame(time) {
       if (!start) start = time;
@@ -123,33 +136,13 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
   });
 };
 
-const easeManeuver = (before, after, maneuver, durationToManeuver, max) => {
-  let { modifier } = maneuver;
-
-  function scale(number, inMin, inMax, outMin, outMax) {
-    return ((number - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
-  }
-
-  const phase = 1 - scale(Math.min(durationToManeuver, max), 0, max, 0, 1);
-
-  // Bearing
-  let bearing = before.bearing;
-
-  if (before.bearing && modifier && before.bearing !== after.bearing) {
-    const isClockwise = modifier.includes('left') ? false : true;
-
-    bearing = calculateBearing(
-      before.bearing,
-      after.bearing,
-      isClockwise,
-      phase
-    );
-  }
+const easePitchAndZoom = (before, after, distanceToCover, max) => {
+  const phase = 1 - scale(Math.min(distanceToCover, max), 0, max, 0, 1);
 
   let pitch = routingOptions.pitch;
   let zoom = routingOptions.zoom;
 
-  if (after.pitch) {
+  if (after.pitch !== undefined) {
     const pitchIsIncreasing = after.pitch > before.pitch;
     const minPitch = Math.min(before.pitch, after.pitch);
     const maxPitch = Math.max(before.pitch, after.pitch);
@@ -159,7 +152,7 @@ const easeManeuver = (before, after, maneuver, durationToManeuver, max) => {
       : scale(1 - phase, 0, 1, minPitch, maxPitch);
   }
 
-  if (after.zoom) {
+  if (after.zoom !== undefined) {
     const zoomIsIncreasing = after.zoom > before.zoom;
     const minZoom = Math.min(before.zoom, after.zoom);
     const maxZoom = Math.max(before.zoom, after.zoom);
@@ -169,7 +162,7 @@ const easeManeuver = (before, after, maneuver, durationToManeuver, max) => {
       : scale(1 - phase, 0, 1, minZoom, maxZoom);
   }
 
-  return { bearing, pitch, zoom };
+  return { pitch, zoom };
 };
 
 // Navigates a route step with options passed from the step object
@@ -192,7 +185,7 @@ const navigate = (map, options) => {
       .concat(Array(lookAheadIndex).fill(coordinates[coordinates.length - 1]));
 
     // multiplier is arbitrary. Duration is in seconds, but actual realistic timing is very slow
-    const animationDuration = duration * DURATION_MULTIPLIER;
+    const animationDuration = duration * routingOptions.durationMultiplier;
     // get the overall distance of each route so we can interpolate along them
     const routeDistance = turf.lineDistance(turf.lineString(targetRoute));
     const lookAheadDistance = turf.lineDistance(
@@ -248,39 +241,43 @@ const navigate = (map, options) => {
 
       const distanceLeft = distance - distance * phase;
 
+      const leadDistance = maneuverOptions?.leadDistance;
+
       // ease into
-      if (distanceLeft <= LEAD_DISTANCE) {
+      if (leadDistance && distanceLeft <= leadDistance) {
         if (!easeInPitch) easeInPitch = map.getPitch();
         if (!easeInZoom) easeInZoom = map.getZoom();
 
-        const maneuverBehavior =
-          routingOptions?.maneuverBehavior?.[nextManeuver.type];
+        const maneuverBehavior = maneuverOptions?.[nextManeuver.type];
 
-        const easedPosition = easeManeuver(
+        const easedPosition = easePitchAndZoom(
           {
             pitch: easeInPitch,
             zoom: easeInZoom,
           },
           {
-            pitch: maneuverBehavior?.pitch || routingOptions.pitch,
-            zoom: maneuverBehavior?.zoom || routingOptions.zoom,
+            pitch:
+              maneuverBehavior?.pitch !== undefined
+                ? maneuverBehavior?.pitch
+                : routingOptions.pitch,
+            zoom:
+              maneuverBehavior?.zoom !== undefined
+                ? maneuverBehavior?.zoom
+                : routingOptions.zoom,
           },
-          nextManeuver,
           distanceLeft,
-          LEAD_DISTANCE
+          leadDistance
         );
+
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
       }
       // ease out of
-      else if (animationDuration * phase <= MANEUVER_LEAD_TIME) {
+      else if (leadDistance && distance * phase <= leadDistance) {
         if (!easeOutPitch) easeOutPitch = map.getPitch();
         if (!easeOutZoom) easeOutZoom = map.getZoom();
 
-        const maneuverBehavior =
-          routingOptions?.maneuverBehavior?.[maneuver.type];
-
-        const easedPosition = easeManeuver(
+        const easedPosition = easePitchAndZoom(
           {
             pitch: easeOutPitch,
             zoom: easeOutZoom,
@@ -289,9 +286,8 @@ const navigate = (map, options) => {
             pitch: routingOptions.pitch,
             zoom: routingOptions.zoom,
           },
-          maneuver,
-          LEAD_DISTANCE - distance * phase,
-          LEAD_DISTANCE
+          leadDistance - distance * phase,
+          leadDistance
         );
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
