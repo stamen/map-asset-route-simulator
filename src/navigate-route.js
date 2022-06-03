@@ -116,7 +116,9 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
       isClockwise
     );
 
-    const animationDuration = pointDistance * durationMultiplier;
+    // The 5 here is arbitrary, but feels about right since maneuvers don't have a duration and
+    // point distance is not the same as meters travelled
+    const animationDuration = (pointDistance * durationMultiplier) / 5;
 
     function frame(time) {
       if (!start) start = time;
@@ -146,6 +148,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
 };
 
 // Eases the pitch and zoom using a phase based on lead distance
+// Before and after objects contain pitch and zoom
 const easePitchAndZoom = (before, after, distanceToCover, maxDistance) => {
   const phase =
     1 - scale(Math.min(distanceToCover, maxDistance), 0, maxDistance, 0, 1);
