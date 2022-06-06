@@ -1,8 +1,9 @@
 <script>
   import { config as configStore } from '../stores';
-  import { Dropdown } from 'carbon-components-svelte';
+  import { Dropdown, TextInput } from 'carbon-components-svelte';
   import DeviceLayout from './DeviceLayout.svelte';
   import MapView from './MapView.svelte';
+  import { fetchStyle } from '../fetch-style';
 
   const INITIAL_DEVICE_INDEX = 0;
   const INITIAL_STYLE_INDEX = 0;
@@ -17,20 +18,72 @@
 
   let width = devices[INITIAL_DEVICE_INDEX].width;
   let height = devices[INITIAL_DEVICE_INDEX].height;
-  let style = styles[INITIAL_STYLE_INDEX];
+  let style = styles[INITIAL_STYLE_INDEX].url;
+
+  let textInput = '';
+  let localUrl = '';
+  let error;
 
   const deviceDropdownItems = devices.map(device => {
     return { id: device.id, text: device.name };
   });
 
-  const styleDropdownItems = styles.map(style => {
-    return { id: style.id, text: style.name };
-  });
+  const styleDropdownItems = styles
+    .map(style => {
+      return { id: style.id, text: style.name };
+    })
+    .concat([{ id: 'custom', text: 'Custom URL' }]);
+
+  let selected = styleDropdownItems?.[INITIAL_STYLE_INDEX]?.id;
+
+  const poll = url => {
+    const pollCondition = str =>
+      str && str.includes('localhost') && localUrl === str;
+    // Simple polling for any style on localhost
+    // Check that should poll to set timer
+    if (pollCondition(url)) {
+      // Check poll condition again to cancel action for a url
+      setTimeout(() => pollCondition(url) && getStyleFromUrl(url), 3000);
+    }
+  };
+
+  const getStyleFromUrl = async url => {
+    let nextUrl = url;
+    if (url.includes('localhost')) {
+      const [preface, address] = nextUrl.split('localhost');
+      // Fetch doesn't accept localhost unless prefaced with http://
+      // This adds the preface if not present
+      if (!preface) {
+        nextUrl = `http://localhost${address}`;
+      }
+    }
+    try {
+      const data = await fetchStyle(nextUrl);
+      if (data && typeof data === 'object') {
+        style = data;
+        localUrl = nextUrl;
+        poll(nextUrl);
+        return { status: '200', url: nextUrl };
+      }
+    } catch (err) {
+      error = new Error('Style was not found.');
+      return { status: '404', url: nextUrl };
+    }
+  };
 
   const handleSetStyle = e => {
     const { selectedId } = e.detail;
+    selected = selectedId;
+    if (selectedId === 'custom') {
+      textInput = style;
+      error = '';
+      return;
+    }
+    textInput = '';
+    localUrl = '';
+    error = '';
     const nextStyle = styles.find(s => s.id === selectedId);
-    style = nextStyle;
+    style = nextStyle.url;
   };
 
   const handleSetDeviceSize = e => {
@@ -38,6 +91,10 @@
     const device = devices.find(d => d.id === selectedId);
     width = device.width;
     height = device.height;
+  };
+
+  const submitCustomUrl = async () => {
+    const { status } = await getStyleFromUrl(textInput);
   };
 </script>
 
@@ -54,18 +111,34 @@
     <div class="dropdown">
       <Dropdown
         titleText="Map styles"
-        selectedId={styleDropdownItems?.[INITIAL_DEVICE_INDEX]?.id}
+        selectedId={selected}
         items={styleDropdownItems}
         on:select={handleSetStyle}
       />
     </div>
+    {#if selected === 'custom'}
+      <div class="custom-url-container">
+        <div style={`width:${width - 60}px; max-width:360px`}>
+          <TextInput
+            placeholder="Enter map style url..."
+            on:input={e => (textInput = e.detail)}
+            value={textInput}
+            on:focus={() => (error = '')}
+          />
+        </div>
+        <button class="button" on:click={submitCustomUrl}>Submit</button>
+      </div>
+      {#if error}
+        <div class="error">Style not found</div>
+      {/if}
+    {/if}
   </div>
   <div class="device-container">
     <DeviceLayout
       {height}
       {width}
       children={MapView}
-      childProps={{ id: style.id, url: style.url }}
+      childProps={{ id: style.id, url: style }}
     />
   </div>
 </div>
@@ -92,5 +165,21 @@
 
   .dropdown {
     margin-bottom: 12px;
+  }
+
+  .custom-url-container {
+    display: flex;
+    width: 100%;
+  }
+
+  .button {
+    height: 40px;
+    width: 60px;
+  }
+
+  .error {
+    background-color: rgb(255, 130, 130);
+    color: white;
+    padding: 6px;
   }
 </style>
