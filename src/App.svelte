@@ -6,9 +6,11 @@
     route as routeStore,
     mapState as mapStateStore,
     routeLineLayer as routeLineLayerStore,
+    mapStyle as mapStyleStore,
   } from './stores';
   import { makeConfig } from './make-config';
   import { writeHash } from './query';
+  import { DEFAULT_ROUTELINE_PROPERTIES } from './constants';
 
   export let localConfig;
   const config = makeConfig(localConfig);
@@ -23,21 +25,35 @@
     }
   });
 
-  let locations;
+  let locations = null;
   routeStore.subscribe(value => {
     const { locations: storeLocations } = value;
-    locations = storeLocations || null;
+    locations =
+      storeLocations && storeLocations.every(l => l.center !== null)
+        ? storeLocations
+        : null;
   });
 
-  let routeLine;
+  let routeLine = null;
   routeLineLayerStore.subscribe(value => {
     const nextValue = { layout: value.layout, paint: value.paint };
-    routeLine = nextValue;
+    if (
+      JSON.stringify(DEFAULT_ROUTELINE_PROPERTIES) !== JSON.stringify(nextValue)
+    ) {
+      routeLine = nextValue;
+    } else {
+      routeLine = null;
+    }
+  });
+
+  let styleUrl = null;
+  mapStyleStore.subscribe(value => {
+    styleUrl = value !== '' ? value : null;
   });
 
   $: {
-    if (mapState || routeLineLayer) {
-      writeHash({ locations, routeLine, ...mapState });
+    if (mapState || locations || routeLine || styleUrl) {
+      writeHash({ locations, routeLine, styleUrl, ...mapState });
     }
   }
 </script>

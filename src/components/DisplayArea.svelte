@@ -1,5 +1,5 @@
 <script>
-  import { config as configStore } from '../stores';
+  import { config as configStore, mapStyle as mapStyleStore } from '../stores';
   import { Dropdown, TextInput } from 'carbon-components-svelte';
   import DeviceLayout from './DeviceLayout.svelte';
   import MapView from './MapView.svelte';
@@ -18,7 +18,6 @@
 
   let width = devices[INITIAL_DEVICE_INDEX].width;
   let height = devices[INITIAL_DEVICE_INDEX].height;
-  let style = styles[INITIAL_STYLE_INDEX].url;
 
   let textInput = '';
   let localUrl = '';
@@ -36,16 +35,7 @@
 
   let selected = styleDropdownItems?.[INITIAL_STYLE_INDEX]?.id;
 
-  const poll = url => {
-    const pollCondition = str =>
-      str && str.includes('localhost') && localUrl === str;
-    // Simple polling for any style on localhost
-    // Check that should poll to set timer
-    if (pollCondition(url)) {
-      // Check poll condition again to cancel action for a url
-      setTimeout(() => pollCondition(url) && getStyleFromUrl(url), 3000);
-    }
-  };
+  let style = styles[INITIAL_STYLE_INDEX].url;
 
   const getStyleFromUrl = async url => {
     let nextUrl = url;
@@ -71,6 +61,34 @@
     }
   };
 
+  const submitCustomUrl = async () => {
+    await getStyleFromUrl(textInput);
+  };
+
+  mapStyleStore.subscribe(value => {
+    if (value) {
+      style = value;
+      const currentStyle =
+        styles.find(item => item.url == value)?.id ?? 'custom';
+      selected = currentStyle;
+      if (currentStyle === 'custom') {
+        textInput = value;
+        submitCustomUrl();
+      }
+    }
+  });
+
+  const poll = url => {
+    const pollCondition = str =>
+      str && str.includes('localhost') && localUrl === str;
+    // Simple polling for any style on localhost
+    // Check that should poll to set timer
+    if (pollCondition(url)) {
+      // Check poll condition again to cancel action for a url
+      setTimeout(() => pollCondition(url) && getStyleFromUrl(url), 3000);
+    }
+  };
+
   const handleSetStyle = e => {
     const { selectedId } = e.detail;
     selected = selectedId;
@@ -93,9 +111,12 @@
     height = device.height;
   };
 
-  const submitCustomUrl = async () => {
-    const { status } = await getStyleFromUrl(textInput);
-  };
+  $: {
+    if (style) {
+      const url = typeof style === 'string' ? style : localUrl;
+      mapStyleStore.set(url);
+    }
+  }
 </script>
 
 <div class="display-area">
