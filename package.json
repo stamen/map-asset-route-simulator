@@ -27,9 +27,12 @@
   },
   "dependencies": {
     "@fortawesome/free-solid-svg-icons": "^6.1.1",
+    "@joshnuss/svelte-codemirror": "^0.2.6",
     "@mapbox/mapbox-gl-geocoder": "^5.0.1",
+    "@mapbox/mapbox-gl-style-spec": "^13.23.0",
     "@turf/turf": "^6.5.0",
     "carbon-components-svelte": "^0.64.0",
+    "codemirror": "^5.65.5",
     "figmasset": "^0.1.6",
     "geolib": "^3.3.3",
     "lodash.throttle": "^4.1.1",

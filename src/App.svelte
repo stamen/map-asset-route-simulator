@@ -5,6 +5,7 @@
     config as configStore,
     route as routeStore,
     mapState as mapStateStore,
+    routeLineLayer as routeLineLayerStore,
   } from './stores';
   import { makeConfig } from './make-config';
   import { writeHash } from './query';
@@ -28,9 +29,15 @@
     locations = storeLocations || null;
   });
 
+  let routeLine;
+  routeLineLayerStore.subscribe(value => {
+    const nextValue = { layout: value.layout, paint: value.paint };
+    routeLine = nextValue;
+  });
+
   $: {
-    if (mapState) {
-      writeHash({ locations, ...mapState });
+    if (mapState || routeLineLayer) {
+      writeHash({ locations, routeLine, ...mapState });
     }
   }
 </script>

@@ -6,6 +6,7 @@
     mapState as mapStateStore,
     map as mapStore,
     mapAssets as mapAssetsStore,
+    routeLineLayer as routeLineLayerStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
@@ -18,6 +19,9 @@
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
+
+  let routeLineLayoutPaint;
+  routeLineLayerStore.subscribe(value => (routeLineLayoutPaint = value));
 
   let directionsApiResponse;
   routeStore.subscribe(value => ({ response: directionsApiResponse } = value));
@@ -70,6 +74,7 @@
               console.error(err);
             });
           addRouteLine();
+          updateRouteLine();
         }
       };
       loading();
@@ -87,6 +92,32 @@
   });
 
   const addRouteLine = () => {
+    const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
+    const layerLoaded = !!map.getLayer(ROUTE_LINE_LAYER_ID);
+
+    if (!sourceLoaded) {
+      map.addSource(ROUTE_LINE_SOURCE_ID, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+      });
+    }
+
+    if (!layerLoaded) {
+      // TODO make sure this layer name doesn't exist
+      // TODO decide if we want to allow empty layer in style or just add our own
+      map.addLayer({
+        id: ROUTE_LINE_LAYER_ID,
+        type: 'line',
+        source: ROUTE_LINE_SOURCE_ID,
+        ...routeLineLayoutPaint,
+      });
+    }
+  };
+
+  const updateRouteLine = () => {
     if (!directionsApiResponse) return;
     const { routes } = directionsApiResponse;
     // Ignore alternative routes if there are any
@@ -110,31 +141,7 @@
       features: features,
     };
 
-    const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
-    if (!sourceLoaded) {
-      map.addSource(ROUTE_LINE_SOURCE_ID, {
-        type: 'geojson',
-        data: highResGeom,
-      });
-      // TODO make sure this layer name doesn't exist
-      // TODO decide if we want to allow empty layer in style or just add our own
-      map.addLayer({
-        id: ROUTE_LINE_LAYER_ID,
-        type: 'line',
-        source: ROUTE_LINE_SOURCE_ID,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': 'blue',
-          'line-width': 8,
-        },
-      });
-    } else {
-      // TODO consider using low res geom for overview, then switch for turn by turn
-      map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
-    }
+    map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 
     const { coordinates } = lowResGeom;
 
@@ -171,7 +178,7 @@
   }
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
-    addRouteLine();
+    updateRouteLine();
   }
 </script>
 
