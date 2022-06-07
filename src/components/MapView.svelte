@@ -116,8 +116,13 @@
         const hasRouteLine = stylesheet.layers.find(
           l => l.id === ROUTE_LINE_LAYER_ID
         );
+        // This isn't a very accurate way to determine placement
+        const lowestSymbolLayerIndex =
+          stylesheet.layers.findIndex(
+            l => l.type === 'symbol' && l?.layout?.['text-field']
+          ) || stylesheet.layers.length;
         !hasRouteLine &&
-          stylesheet.layers.splice(stylesheet.layers.length, 0, routeLineLayer);
+          stylesheet.layers.splice(lowestSymbolLayerIndex, 0, routeLineLayer);
         const geometries = createGeojsonSource(directionsApiResponse);
         let source = geometries
           ? { type: 'geojson', data: geometries.highResGeom }

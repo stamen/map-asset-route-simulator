@@ -15,13 +15,17 @@
   let errors = [];
   let map;
 
-  routeLineLayerStore.subscribe(value => {
-    routeLineLayer = value;
+  const setCodeFromLayer = layer => {
     const exposedLayer = {
-      layout: routeLineLayer.layout || {},
-      paint: routeLineLayer.paint || {},
+      layout: layer.layout || {},
+      paint: layer.paint || {},
     };
     code = JSON.stringify(exposedLayer, null, 2);
+  };
+
+  routeLineLayerStore.subscribe(value => {
+    routeLineLayer = value;
+    setCodeFromLayer(routeLineLayer);
   });
 
   mapStore.subscribe(value => (map = value));
@@ -88,12 +92,25 @@
       routeLineLayerStore.set(nextRouteLine);
     }
   }
+
+  $: {
+    if (editor) {
+      editor.on('blur', () => {
+        if (errors.length) {
+          setCodeFromLayer(routeLineLayer);
+        }
+      });
+    }
+  }
 </script>
 
 <div>
   <div class="container">
     <CodeMirror bind:editor {options} class="editor" bind:value={code} />
-    <div class="icon">
+    <div
+      class="icon"
+      title={errors.length ? 'Layer is invalid' : 'Valid layer'}
+    >
       <Fa
         size="2x"
         icon={errors.length ? faXmark : faCheck}
@@ -134,5 +151,6 @@
     background-color: rgb(255, 130, 130);
     padding: 6px;
     color: white;
+    max-width: 240px;
   }
 </style>

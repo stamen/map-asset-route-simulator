@@ -94,9 +94,13 @@ export const addRouteLine = map => {
   }
 
   if (!layerLoaded) {
+    const lowestSymbolLayerId = map
+      .getStyle()
+      .layers.find(l => l.type === 'symbol' && l?.layout?.['text-field'])?.id;
+
     // TODO make sure this layer name doesn't exist
     // TODO decide if we want to allow empty layer in style or just add our own
-    map.addLayer(routeLineLayer);
+    map.addLayer(routeLineLayer, lowestSymbolLayerId);
   }
 };
 

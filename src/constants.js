@@ -8,8 +8,8 @@ export const DEFAULT_GEOCODERS = [
   { id: 'b', center: null, locationText: '' },
 ];
 
-export const ROUTE_LINE_SOURCE_ID = 'route-line';
-export const ROUTE_LINE_LAYER_ID = 'route-line';
+export const ROUTE_LINE_SOURCE_ID = 'route-line-internal-mock-source';
+export const ROUTE_LINE_LAYER_ID = 'route-line-internal-mock-layer';
 
 export const ROUTE_LINE_SOURCE = {
   type: 'geojson',
