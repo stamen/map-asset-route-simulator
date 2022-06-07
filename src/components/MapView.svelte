@@ -6,22 +6,22 @@
     mapState as mapStateStore,
     map as mapStore,
     mapAssets as mapAssetsStore,
-    routeLineLayer as routeLineLayerStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
   import { addFigmaImages } from '../add-figma-images';
-  import { ROUTE_LINE_SOURCE_ID, ROUTE_LINE_LAYER_ID } from '../constants';
+  import {
+    waitForStyleUpdate,
+    addRouteLine,
+    updateRouteLine,
+  } from '../add-map-assets';
 
   export let id;
   export let url;
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
-
-  let routeLineLayoutPaint;
-  routeLineLayerStore.subscribe(value => (routeLineLayoutPaint = value));
 
   let directionsApiResponse;
   routeStore.subscribe(value => ({ response: directionsApiResponse } = value));
@@ -56,28 +56,25 @@
 
     // Styledata isn't a completely reliable event
     map.once('styledata', () => {
-      const loading = () => {
-        if (!map.isStyleLoaded()) {
-          setTimeout(loading, 150);
-        } else {
-          addFigmaImages(map)
-            .then(addedIcons => {
-              mapAssetsStore.update(store => {
-                return Object.keys(store).reduce((acc, k) => {
-                  acc[k] = addedIcons.includes(k) ? true : false;
-                  return acc;
-                }, {});
-              });
-              console.log('Assets loaded');
-            })
-            .catch(err => {
-              console.error(err);
+      const callback = () => {
+        addFigmaImages(map)
+          .then(addedIcons => {
+            mapAssetsStore.update(store => {
+              return Object.keys(store).reduce((acc, k) => {
+                acc[k] = addedIcons.includes(k) ? true : false;
+                return acc;
+              }, {});
             });
-          addRouteLine();
-          updateRouteLine();
-        }
+            console.log('Assets loaded');
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        addRouteLine(map);
+        updateRouteLine(map, directionsApiResponse);
       };
-      loading();
+
+      waitForStyleUpdate(map, callback);
     });
 
     map.on('move', () => {
@@ -91,75 +88,14 @@
     }
   });
 
-  const addRouteLine = () => {
-    const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
-    const layerLoaded = !!map.getLayer(ROUTE_LINE_LAYER_ID);
-
-    if (!sourceLoaded) {
-      map.addSource(ROUTE_LINE_SOURCE_ID, {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [],
-        },
-      });
-    }
-
-    if (!layerLoaded) {
-      // TODO make sure this layer name doesn't exist
-      // TODO decide if we want to allow empty layer in style or just add our own
-      map.addLayer({
-        id: ROUTE_LINE_LAYER_ID,
-        type: 'line',
-        source: ROUTE_LINE_SOURCE_ID,
-        ...routeLineLayoutPaint,
-      });
-    }
-  };
-
-  const updateRouteLine = () => {
-    if (!directionsApiResponse) return;
-    const { routes } = directionsApiResponse;
-    // Ignore alternative routes if there are any
-    const route = routes[0];
-    // TODO: Do we care about the low res geometry?
-    const { geometry: lowResGeom } = route;
-
-    let features = route.legs.reduce((acc, leg) => {
-      const steps = leg.steps.reduce(
-        (acc, step) => acc.concat(step.geometry),
-        []
-      );
-      acc = acc.concat(steps);
-      return acc;
-    }, []);
-
-    features = features.map(f => ({ type: 'Feature', geometry: f }));
-
-    const highResGeom = {
-      type: 'FeatureCollection',
-      features: features,
-    };
-
-    map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
-
-    const { coordinates } = lowResGeom;
-
-    const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
-
-    for (const coord of coordinates) {
-      bounds.extend(coord);
-    }
-
-    map.setPitch(0);
-    map.fitBounds(bounds, {
-      padding: 20,
-    });
-  };
-
   $: {
     if (map && url) {
       map.setStyle(url);
+      const callback = () => {
+        addRouteLine(map);
+        updateRouteLine(map, directionsApiResponse);
+      };
+      waitForStyleUpdate(map, callback);
     }
   }
 
@@ -178,7 +114,7 @@
   }
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
-    updateRouteLine();
+    updateRouteLine(map, directionsApiResponse);
   }
 </script>
 

@@ -1,11 +1,11 @@
 <script>
+  import { validate } from '@mapbox/mapbox-gl-style-spec';
   import 'codemirror/mode/javascript/javascript';
   import CodeMirror from '@joshnuss/svelte-codemirror';
   import {
     routeLineLayer as routeLineLayerStore,
     map as mapStore,
   } from '../stores';
-  import { validate } from '@mapbox/mapbox-gl-style-spec';
 
   let routeLineLayer;
   let code;

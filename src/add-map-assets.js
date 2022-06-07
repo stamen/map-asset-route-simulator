@@ -1,8 +1,28 @@
-import { mapAssets as mapAssetsStore } from './stores';
-import { PUCK } from './constants';
+import mapboxgl from 'mapbox-gl';
+import {
+  mapAssets as mapAssetsStore,
+  routeLineLayer as routeLineLayerStore,
+} from './stores';
+import { PUCK, ROUTE_LINE_SOURCE_ID, ROUTE_LINE_LAYER_ID } from './constants';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
+
+let routeLineLayer;
+routeLineLayerStore.subscribe(value => (routeLineLayer = value));
+
+export const waitForStyleUpdate = (map, cb) => {
+  map.once('styledata', () => {
+    const loading = () => {
+      if (!map.isStyleLoaded()) {
+        setTimeout(loading, 150);
+      } else {
+        cb();
+      }
+    };
+    loading();
+  });
+};
 
 // This function lets us continually feed in a new lat/lng to the source of puck to move it along the route
 export const setPuckLocation = (map, point) => {
@@ -57,4 +77,65 @@ export const setMarkerLayer = (map, point, markerId, pitchAlignment) => {
 export const removeMarkerLayer = (map, markerId) => {
   map.removeLayer(markerId);
   map.removeSource(markerId);
+};
+
+export const addRouteLine = map => {
+  const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
+  const layerLoaded = !!map.getLayer(ROUTE_LINE_LAYER_ID);
+
+  if (!sourceLoaded) {
+    map.addSource(ROUTE_LINE_SOURCE_ID, {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: [],
+      },
+    });
+  }
+
+  if (!layerLoaded) {
+    // TODO make sure this layer name doesn't exist
+    // TODO decide if we want to allow empty layer in style or just add our own
+    map.addLayer(routeLineLayer);
+  }
+};
+
+export const updateRouteLine = (map, directionsApiResponse) => {
+  if (!directionsApiResponse) return;
+  const { routes } = directionsApiResponse;
+  // Ignore alternative routes if there are any
+  const route = routes[0];
+  // TODO: Do we care about the low res geometry?
+  const { geometry: lowResGeom } = route;
+
+  let features = route.legs.reduce((acc, leg) => {
+    const steps = leg.steps.reduce(
+      (acc, step) => acc.concat(step.geometry),
+      []
+    );
+    acc = acc.concat(steps);
+    return acc;
+  }, []);
+
+  features = features.map(f => ({ type: 'Feature', geometry: f }));
+
+  const highResGeom = {
+    type: 'FeatureCollection',
+    features: features,
+  };
+
+  map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
+
+  const { coordinates } = lowResGeom;
+
+  const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
+
+  for (const coord of coordinates) {
+    bounds.extend(coord);
+  }
+
+  map.setPitch(0);
+  map.fitBounds(bounds, {
+    padding: 20,
+  });
 };
