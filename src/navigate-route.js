@@ -10,7 +10,7 @@ import {
   setPuckLocation,
   setMarkerLayer,
   removeMarkerLayer,
-} from './add-map-assets';
+} from './map-assets-utils';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
