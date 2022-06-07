@@ -11,6 +11,14 @@ export const DEFAULT_GEOCODERS = [
 export const ROUTE_LINE_SOURCE_ID = 'route-line';
 export const ROUTE_LINE_LAYER_ID = 'route-line';
 
+export const ROUTE_LINE_SOURCE = {
+  type: 'geojson',
+  data: {
+    type: 'FeatureCollection',
+    features: [],
+  },
+};
+
 export const DEFAULT_ROUTELINE_PROPERTIES = {
   layout: {
     'line-join': 'round',

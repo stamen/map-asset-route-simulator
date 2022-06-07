@@ -6,6 +6,7 @@
     mapState as mapStateStore,
     map as mapStore,
     mapAssets as mapAssetsStore,
+    routeLineLayer as routeLineLayerStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
@@ -15,7 +16,13 @@
     waitForStyleUpdate,
     addRouteLine,
     updateRouteLine,
+    createGeojsonSource,
   } from '../add-map-assets';
+  import {
+    ROUTE_LINE_LAYER_ID,
+    ROUTE_LINE_SOURCE,
+    ROUTE_LINE_SOURCE_ID,
+  } from '../constants';
 
   export let id;
   export let url;
@@ -28,6 +35,9 @@
 
   let mapState;
   mapStateStore.subscribe(value => (mapState = value));
+
+  let routeLineLayer;
+  routeLineLayerStore.subscribe(value => (routeLineLayer = value));
 
   mapboxgl.accessToken = mapboxGlAccessToken;
 
@@ -89,13 +99,31 @@
   });
 
   $: {
+    // url can be a url or a full stylesheet
     if (map && url) {
-      map.setStyle(url);
-      const callback = () => {
-        addRouteLine(map);
-        updateRouteLine(map, directionsApiResponse);
-      };
-      waitForStyleUpdate(map, callback);
+      if (typeof url === 'string') {
+        map.setStyle(url);
+        const callback = () => {
+          addRouteLine(map);
+          updateRouteLine(map, directionsApiResponse);
+        };
+        waitForStyleUpdate(map, callback);
+      } else {
+        // If stylesheet, add layer and source manually
+        // Usually because of polling
+        const stylesheet = url;
+        const hasRouteLine = stylesheet.layers.find(
+          l => l.id === ROUTE_LINE_LAYER_ID
+        );
+        !hasRouteLine &&
+          stylesheet.layers.splice(stylesheet.layers.length, 0, routeLineLayer);
+        const geometries = createGeojsonSource(directionsApiResponse);
+        let source = geometries
+          ? { type: 'geojson', data: geometries.highResGeom }
+          : ROUTE_LINE_SOURCE;
+        stylesheet.sources[ROUTE_LINE_SOURCE_ID] = source;
+        map.setStyle(stylesheet);
+      }
     }
   }
 

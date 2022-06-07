@@ -100,7 +100,7 @@ export const addRouteLine = map => {
   }
 };
 
-export const updateRouteLine = (map, directionsApiResponse) => {
+export const createGeojsonSource = directionsApiResponse => {
   if (!directionsApiResponse) return;
   const { routes } = directionsApiResponse;
   // Ignore alternative routes if there are any
@@ -123,6 +123,15 @@ export const updateRouteLine = (map, directionsApiResponse) => {
     type: 'FeatureCollection',
     features: features,
   };
+
+  return { highResGeom, lowResGeom };
+};
+
+export const updateRouteLine = (map, directionsApiResponse) => {
+  if (!directionsApiResponse) return;
+  const { highResGeom, lowResGeom } = createGeojsonSource(
+    directionsApiResponse
+  );
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 
