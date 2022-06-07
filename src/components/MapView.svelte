@@ -98,6 +98,7 @@
     }
   });
 
+  // Reactive block to handle a new style coming in
   $: {
     // url can be a url or a full stylesheet
     if (map && url) {

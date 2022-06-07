@@ -25,7 +25,15 @@ export const DEFAULT_ROUTELINE_PROPERTIES = {
     'line-cap': 'round',
   },
   paint: {
-    'line-color': 'blue',
-    'line-width': 8,
+    'line-color': 'cyan',
+    'line-width': [
+      'interpolate',
+      ['exponential', 1.5],
+      ['zoom'],
+      5,
+      0.75,
+      18,
+      32,
+    ],
   },
 };

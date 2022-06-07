@@ -1,4 +1,6 @@
 <script>
+  import { faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
+  import Fa from 'svelte-fa/src/fa.svelte';
   import { validate } from '@mapbox/mapbox-gl-style-spec';
   import 'codemirror/mode/javascript/javascript';
   import CodeMirror from '@joshnuss/svelte-codemirror';
@@ -57,19 +59,6 @@
     return nextErrors;
   };
 
-  const setMapStyle = layer => {
-    const { id } = layer;
-    const style = map.getStyle();
-    const layerIndex = style.layers.findIndex(l => l.id === id);
-    let nextLayers = style.layers;
-    nextLayers.splice(layerIndex, 1, layer);
-    const nextStyle = {
-      ...style,
-      layers: nextLayers,
-    };
-    map.setStyle(nextStyle);
-  };
-
   $: {
     let layerJson = code;
     try {
@@ -97,27 +86,53 @@
     ) {
       const nextRouteLine = { ...routeLineLayer, ...JSON.parse(code) };
       routeLineLayerStore.set(nextRouteLine);
-      setMapStyle(nextRouteLine);
     }
   }
 </script>
 
-<div class="container">
-  <CodeMirror bind:editor {options} class="editor" bind:value={code} />
+<div>
+  <div class="container">
+    <CodeMirror bind:editor {options} class="editor" bind:value={code} />
+    <div class="icon">
+      <Fa
+        size="2x"
+        icon={errors.length ? faXmark : faCheck}
+        color={errors.length ? 'red' : 'green'}
+      />
+    </div>
+  </div>
+  {#each errors as error}
+    <div class="error">{error}</div>
+  {/each}
 </div>
 
 <style>
   :global(.editor) {
-    font-size: 14px;
-    height: 240px;
-  }
-
-  .container {
-    width: 240px;
+    font-size: 12px;
     height: 240px;
   }
 
   :global(.CodeMirror) {
     max-height: 240px !important;
+  }
+
+  .container {
+    width: 240px;
+    height: 240px;
+    position: relative;
+  }
+
+  .icon {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding: 12px;
+    background-color: white;
+  }
+
+  .error {
+    background-color: rgb(255, 130, 130);
+    padding: 6px;
+    color: white;
   }
 </style>
