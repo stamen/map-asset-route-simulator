@@ -111,12 +111,12 @@
         waitForStyleUpdate(map, callback);
       } else {
         // If stylesheet, add layer and source manually
-        // Usually because of polling
+        // Usually because of polling from a local server
         const stylesheet = url;
         const hasRouteLine = stylesheet.layers.find(
           l => l.id === ROUTE_LINE_LAYER_ID
         );
-        // This isn't a very accurate way to determine placement
+        // This isn't a very accurate way to determine placement, but will do for now
         const lowestSymbolLayerIndex =
           stylesheet.layers.findIndex(
             l => l.type === 'symbol' && l?.layout?.['text-field']
