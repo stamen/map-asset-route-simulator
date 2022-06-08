@@ -3,7 +3,7 @@ const round = (n, digits) => {
 };
 
 // Keys that should be encoded/decoded as arrays
-const jsonKeys = ['locations'];
+const jsonKeys = ['locations', 'routeLine'];
 
 // Keys that should be encoded/decoded as boolean values
 const booleanKeys = [];
@@ -50,7 +50,7 @@ function fromQueryString(qs) {
 const cleanSettings = stateObj => {
   let nextState = Object.keys(stateObj).reduce((acc, k) => {
     const value = stateObj[k];
-    if (value !== null && JSON.parse(value) !== null) acc[k] = value;
+    if (value !== null) acc[k] = value;
     return acc;
   }, {});
   return nextState;
@@ -60,7 +60,10 @@ export function writeHash(mapSettings) {
   let nonMapSettings = Object.fromEntries(
     Object.entries(mapSettings)
       .filter(([k, v]) => !mapLocationKeys.includes(k))
-      .map(([k, v]) => [k, jsonKeys.includes(k) ? JSON.stringify(v) : v])
+      .map(([k, v]) => [
+        k,
+        jsonKeys.includes(k) && v !== null ? JSON.stringify(v) : v,
+      ])
   );
 
   nonMapSettings = cleanSettings(nonMapSettings);

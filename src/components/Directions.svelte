@@ -153,8 +153,13 @@
       locations: geocoders,
       response: null,
     });
-    map.removeLayer(ROUTE_LINE_LAYER_ID);
-    map.removeSource(ROUTE_LINE_SOURCE_ID);
+
+    const emptyGeojson = {
+      type: 'FeatureCollection',
+      features: [],
+    };
+
+    map.getSource(ROUTE_LINE_SOURCE_ID).setData(emptyGeojson);
   };
 
   const runRoute = async () => {
@@ -216,12 +221,13 @@
   }
 
   .directions {
-    margin-top: 12px;
-    width: 100%;
+    width: 330px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
   }
 
   .button-margin {
-    margin-left: 42px;
     margin-bottom: 3px;
   }
 
@@ -231,12 +237,13 @@
   }
 
   .secondary-button {
-    width: 120px;
+    width: calc(120px - 3px / 2);
     height: 36px;
   }
 
   .stop {
     height: 36px;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -244,9 +251,10 @@
   }
 
   .search-container {
-    margin-left: 12px;
     display: flex;
     align-items: center;
+    /* This feels bad */
+    margin-left: 21px;
   }
 
   .geocoder-container {
@@ -276,7 +284,7 @@
     display: flex;
     font-weight: bold;
     font-size: 18px;
-    margin-right: 12px;
+    width: 24px;
   }
 
   .remove-stop {

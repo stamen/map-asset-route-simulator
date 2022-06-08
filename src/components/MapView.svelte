@@ -6,12 +6,23 @@
     mapState as mapStateStore,
     map as mapStore,
     mapAssets as mapAssetsStore,
+    routeLineLayer as routeLineLayerStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
   import 'mapbox-gl/dist/mapbox-gl.css';
   import { addFigmaImages } from '../add-figma-images';
-  import { ROUTE_LINE_SOURCE_ID, ROUTE_LINE_LAYER_ID } from '../constants';
+  import {
+    waitForStyleUpdate,
+    addRouteLine,
+    updateRouteLine,
+    createGeojsonSource,
+  } from '../map-assets-utils';
+  import {
+    ROUTE_LINE_LAYER_ID,
+    ROUTE_LINE_SOURCE,
+    ROUTE_LINE_SOURCE_ID,
+  } from '../constants';
 
   export let id;
   export let url;
@@ -24,6 +35,9 @@
 
   let mapState;
   mapStateStore.subscribe(value => (mapState = value));
+
+  let routeLineLayer;
+  routeLineLayerStore.subscribe(value => (routeLineLayer = value));
 
   mapboxgl.accessToken = mapboxGlAccessToken;
 
@@ -52,27 +66,25 @@
 
     // Styledata isn't a completely reliable event
     map.once('styledata', () => {
-      const loading = () => {
-        if (!map.isStyleLoaded()) {
-          setTimeout(loading, 150);
-        } else {
-          addFigmaImages(map)
-            .then(addedIcons => {
-              mapAssetsStore.update(store => {
-                return Object.keys(store).reduce((acc, k) => {
-                  acc[k] = addedIcons.includes(k) ? true : false;
-                  return acc;
-                }, {});
-              });
-              console.log('Assets loaded');
-            })
-            .catch(err => {
-              console.error(err);
+      const callback = () => {
+        addFigmaImages(map)
+          .then(addedIcons => {
+            mapAssetsStore.update(store => {
+              return Object.keys(store).reduce((acc, k) => {
+                acc[k] = addedIcons.includes(k) ? true : false;
+                return acc;
+              }, {});
             });
-          addRouteLine();
-        }
+            console.log('Assets loaded');
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        addRouteLine(map);
+        updateRouteLine(map, directionsApiResponse);
       };
-      loading();
+
+      waitForStyleUpdate(map, callback);
     });
 
     map.on('move', () => {
@@ -86,73 +98,38 @@
     }
   });
 
-  const addRouteLine = () => {
-    if (!directionsApiResponse) return;
-    const { routes } = directionsApiResponse;
-    // Ignore alternative routes if there are any
-    const route = routes[0];
-    // TODO: Do we care about the low res geometry?
-    const { geometry: lowResGeom } = route;
-
-    let features = route.legs.reduce((acc, leg) => {
-      const steps = leg.steps.reduce(
-        (acc, step) => acc.concat(step.geometry),
-        []
-      );
-      acc = acc.concat(steps);
-      return acc;
-    }, []);
-
-    features = features.map(f => ({ type: 'Feature', geometry: f }));
-
-    const highResGeom = {
-      type: 'FeatureCollection',
-      features: features,
-    };
-
-    const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
-    if (!sourceLoaded) {
-      map.addSource(ROUTE_LINE_SOURCE_ID, {
-        type: 'geojson',
-        data: highResGeom,
-      });
-      // TODO make sure this layer name doesn't exist
-      // TODO decide if we want to allow empty layer in style or just add our own
-      map.addLayer({
-        id: ROUTE_LINE_LAYER_ID,
-        type: 'line',
-        source: ROUTE_LINE_SOURCE_ID,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': 'blue',
-          'line-width': 8,
-        },
-      });
-    } else {
-      // TODO consider using low res geom for overview, then switch for turn by turn
-      map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
-    }
-
-    const { coordinates } = lowResGeom;
-
-    const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
-
-    for (const coord of coordinates) {
-      bounds.extend(coord);
-    }
-
-    map.setPitch(0);
-    map.fitBounds(bounds, {
-      padding: 20,
-    });
-  };
-
+  // Reactive block to handle a new style coming in
   $: {
+    // url can be a url or a full stylesheet
     if (map && url) {
-      map.setStyle(url);
+      if (typeof url === 'string') {
+        map.setStyle(url);
+        const callback = () => {
+          addRouteLine(map);
+          updateRouteLine(map, directionsApiResponse);
+        };
+        waitForStyleUpdate(map, callback);
+      } else {
+        // If stylesheet, add layer and source manually
+        // Usually because of polling from a local server
+        const stylesheet = url;
+        const hasRouteLine = stylesheet.layers.find(
+          l => l.id === ROUTE_LINE_LAYER_ID
+        );
+        // This isn't a very accurate way to determine placement, but will do for now
+        const lowestSymbolLayerIndex =
+          stylesheet.layers.findIndex(
+            l => l.type === 'symbol' && l?.layout?.['text-field']
+          ) || stylesheet.layers.length;
+        !hasRouteLine &&
+          stylesheet.layers.splice(lowestSymbolLayerIndex, 0, routeLineLayer);
+        const geometries = createGeojsonSource(directionsApiResponse);
+        let source = geometries
+          ? { type: 'geojson', data: geometries.highResGeom }
+          : ROUTE_LINE_SOURCE;
+        stylesheet.sources[ROUTE_LINE_SOURCE_ID] = source;
+        map.setStyle(stylesheet);
+      }
     }
   }
 
@@ -171,7 +148,7 @@
   }
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
-    addRouteLine();
+    updateRouteLine(map, directionsApiResponse);
   }
 </script>
 
