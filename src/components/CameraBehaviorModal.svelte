@@ -26,7 +26,7 @@
         value)
   );
 
-  let open = true;
+  let open = false;
 
   let speedOptionsToggle = speedOptions !== undefined;
 
@@ -86,6 +86,10 @@
     speedOptionsToggle = value;
     if (!speedOptionsToggle) {
       speedOptions = defaultSpeedOptions;
+      configStore.update(v => {
+        delete v.speedOptions;
+        return v;
+      });
     }
   };
 
@@ -95,7 +99,48 @@
   };
 </script>
 
-<button on:click={() => (open = true)}>Adjust camera behavior</button>
+<div>
+  <div class="container">
+    <div class="window">
+      <div class="section">
+        <span class="bold">Duration multiplier:</span>
+        <span class="code">{durationMultiplier}</span>
+      </div>
+      <div class="section">
+        <span class="bold">Routing options:</span>
+        {#each Object.keys(routingOptions) as key}
+          <div class="indent-1">
+            {key}: <span class="code">{routingOptions[key]}</span>
+          </div>
+        {/each}
+      </div>
+      <div class="section">
+        <span class="bold">Speed options:</span>
+        {#each Object.keys(speedOptions) as key}
+          <div class="indent-1">
+            {key}: <span class="code">{speedOptions[key]}</span>
+          </div>
+        {/each}
+      </div>
+      <div class="section">
+        <span class="bold">Maneuver options:</span>
+        {#each Object.keys(maneuverOptions) as key}
+          <div class="indent-1">
+            {key}: {#each Object.keys(maneuverOptions[key]) as subKey}
+              <div class="indent-2">
+                {subKey}:
+                <span class="code">{maneuverOptions[key][subKey]}</span>
+              </div>
+            {/each}
+          </div>
+        {/each}
+      </div>
+    </div>
+  </div>
+  <button class="primary-button" on:click={() => (open = true)}
+    >Adjust camera behavior</button
+  >
+</div>
 
 <Modal bind:open modalHeading="Camera behavior" passiveModal>
   <div class="modal-container">
@@ -164,7 +209,7 @@
           <NumberInput
             size="sm"
             label="Maneuver lead distance"
-            value={speedOptions.leadDistance ?? routingOptions.leadDistance}
+            value={speedOptions?.leadDistance ?? routingOptions.leadDistance}
             min={0}
             max={500}
             step={1}
@@ -176,7 +221,7 @@
           <NumberInput
             size="sm"
             label="threshold (meters/second)"
-            value={speedOptions.speed ?? 0}
+            value={speedOptions?.speed ?? 0}
             min={SPEED_MIN}
             max={SPEED_MAX}
             step={NUMBER_INPUT_STEPS['pitch']}
@@ -188,7 +233,7 @@
           <NumberInput
             size="sm"
             label="pitch"
-            value={speedOptions.pitch ?? routingOptions.pitch}
+            value={speedOptions?.pitch ?? routingOptions.pitch}
             min={PITCH_MIN}
             max={PITCH_MAX}
             step={NUMBER_INPUT_STEPS['pitch']}
@@ -200,7 +245,7 @@
           <NumberInput
             size="sm"
             label="zoom"
-            value={speedOptions.zoom ?? routingOptions.zoom}
+            value={speedOptions?.zoom ?? routingOptions.zoom}
             step={NUMBER_INPUT_STEPS['zoom']}
             min={ZOOM_MIN}
             max={ZOOM_MAX}
@@ -223,6 +268,46 @@
 </Modal>
 
 <style>
+  .container {
+    max-height: 240px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .window {
+    padding: 12px;
+    overflow: scroll;
+    border: 1px solid lightgray;
+  }
+
+  .primary-button {
+    margin-top: 12px;
+    width: 240px;
+    height: 36px;
+  }
+
+  .bold {
+    font-weight: bold;
+  }
+
+  .code {
+    font-family: 'Courier New', Courier, monospace;
+  }
+
+  .indent-1 {
+    margin-left: 6px;
+  }
+
+  .indent-2 {
+    margin-left: 12px;
+  }
+
+  .section {
+    margin-top: 6px;
+    line-height: 18px;
+  }
+
   .modal-container {
     display: flex;
     justify-content: space-between;
