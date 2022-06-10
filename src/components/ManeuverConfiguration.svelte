@@ -146,6 +146,11 @@
   Configured maneuvers:
   <div class="maneuver-list">
     <div class="scroll-window">
+      {#if !setManeuvers.length}
+        <div class="message-container">
+          <div class="message">Configured maneuvers will appear here</div>
+        </div>
+      {/if}
       {#each setManeuvers as maneuverObj}
         <div class="set-maneuver">
           <div class="maneuver-actions">
@@ -249,5 +254,19 @@
   .action-button {
     padding: 6px;
     margin-left: 3px;
+  }
+
+  .message-container {
+    display: flex;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .message {
+    font-weight: bold;
+    font-size: 36px;
+    color: #f4f4f4;
+    text-align: center;
   }
 </style>
