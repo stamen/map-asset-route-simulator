@@ -46,6 +46,20 @@
     setManeuvers = getSetManeuvers();
   }
 
+  const isEditConfigDefault = () => {
+    const isDefault = Object.entries(editOptions).every(kv => {
+      const [k, v] = kv;
+      return defaultOptions[k] === v;
+    });
+    return isDefault;
+  };
+
+  let editConfigIsDefault = isEditConfigDefault();
+
+  $: if (editOptions) {
+    editConfigIsDefault = isEditConfigDefault();
+  }
+
   const selectAddManeuver = selectedId => {
     editManeuver = selectedId;
     editOptions = { ...editOptions, ...(maneuverOptions[editManeuver] ?? {}) };
@@ -64,12 +78,7 @@
   };
 
   const submitEditOptions = () => {
-    const isDefault = Object.entries(editOptions).every(kv => {
-      const [k, v] = kv;
-      return defaultOptions[k] === v;
-    });
-
-    if (!isDefault) {
+    if (!editConfigIsDefault) {
       const nextManeuverOptions = {
         ...maneuverOptions,
         [editManeuver]: editOptions,
@@ -137,7 +146,13 @@
           />
         </div>
         <div class="button-container">
-          <button class="button" on:click={submitEditOptions}>Submit</button
+          <button
+            class="button"
+            on:click={submitEditOptions}
+            disabled={editConfigIsDefault}
+            title={editConfigIsDefault
+              ? 'Settings must be different from the default'
+              : ''}>Submit</button
           ><button on:click={cancelEditMode} class="button">Cancel</button>
         </div>
       {/if}
