@@ -50,7 +50,7 @@ const makeConfig = localConfig => {
 
   const defaultDurationMultiplier = 50;
 
-  const defaultRoutingOptions = { pitch: 60, zoom: 16, durationMultiplier: 50 };
+  const defaultRoutingOptions = { leadDistance: 125, pitch: 60, zoom: 16 };
 
   // TODO we should do deep merge just in case
   const routingOptions = {

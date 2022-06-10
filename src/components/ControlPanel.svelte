@@ -2,6 +2,7 @@
   import { Accordion, AccordionItem } from 'carbon-components-svelte';
   import Directions from './Directions.svelte';
   import RouteLine from './RouteLine.svelte';
+  import CameraBehaviorModal from './CameraBehaviorModal.svelte';
 </script>
 
 <div class="panel">
@@ -11,6 +12,9 @@
     </AccordionItem>
     <AccordionItem title="Route-line:" open>
       <div class="control"><RouteLine /></div>
+    </AccordionItem>
+    <AccordionItem title="Camera behavior:" open>
+      <div class="control"><CameraBehaviorModal /></div>
     </AccordionItem>
   </Accordion>
 </div>

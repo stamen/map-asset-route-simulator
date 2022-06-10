@@ -147,7 +147,7 @@
             on:focus={() => (error = '')}
           />
         </div>
-        <button class="button" on:click={submitCustomUrl}>Submit</button>
+        <button class="submit-button" on:click={submitCustomUrl}>Submit</button>
       </div>
       {#if error}
         <div class="error">Style not found</div>
@@ -193,7 +193,7 @@
     width: 100%;
   }
 
-  .button {
+  .submit-button {
     height: 40px;
     width: 60px;
   }
