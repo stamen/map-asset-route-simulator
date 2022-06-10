@@ -22,7 +22,7 @@
       max: 1000,
     },
     speed: {
-      label: 'threshold (meters/second)',
+      label: 'Threshold (meters/second)',
       min: SPEED_MIN,
       max: SPEED_MAX,
     },
@@ -66,6 +66,7 @@
 
 <style>
   .option {
+    position: relative;
     margin-bottom: 24px;
   }
 

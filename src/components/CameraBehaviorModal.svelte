@@ -1,5 +1,5 @@
 <script>
-  import { Modal, NumberInput, Slider, Toggle } from 'carbon-components-svelte';
+  import { Modal, Slider, Toggle } from 'carbon-components-svelte';
   import { config as configStore } from '../stores';
   import ManeuverConfiguration from './ManeuverConfiguration.svelte';
   import RoutingOptions from './RoutingOptions.svelte';
@@ -19,7 +19,7 @@
         value)
   );
 
-  let open = true;
+  let open = false;
 
   let speedOptionsToggle = speedOptions !== undefined;
 
@@ -41,7 +41,7 @@
     };
     const isCurrent = Object.entries(nextRoutingOptions).every(kv => {
       const [k, v] = kv;
-      return routingOptions[k] === v;
+      return routingOptions?.[k] === v;
     });
     if (!isCurrent) {
       configStore.update(v => ({ ...v, routingOptions: nextRoutingOptions }));
@@ -57,11 +57,11 @@
     };
     const isCurrent = Object.entries(nextSpeedOptions).every(kv => {
       const [k, v] = kv;
-      return speedOptions[k] === v;
+      return speedOptions?.[k] === v;
     });
     const isDefault = Object.entries(nextSpeedOptions).every(kv => {
       const [k, v] = kv;
-      return defaultSpeedOptions[k] === v;
+      return defaultSpeedOptions?.[k] === v;
     });
     if (isCurrent) return;
     configStore.update(v => {
@@ -90,7 +90,14 @@
 
   const handleSetManeuverOptions = e => {
     const options = e.detail;
-    configStore.update(v => ({ ...v, maneuverOptions: options }));
+
+    configStore.update(v => {
+      if (!options || !Object.keys(options).length) {
+        delete v.maneuverOptions;
+        return v;
+      }
+      return { ...v, maneuverOptions: options };
+    });
   };
 </script>
 
@@ -109,27 +116,31 @@
           </div>
         {/each}
       </div>
-      <div class="section">
-        <span class="bold">Speed options:</span>
-        {#each Object.keys(speedOptions) as key}
-          <div class="indent-1">
-            {key}: <span class="code">{speedOptions[key]}</span>
-          </div>
-        {/each}
-      </div>
-      <div class="section">
-        <span class="bold">Maneuver options:</span>
-        {#each Object.keys(maneuverOptions) as key}
-          <div class="indent-1">
-            {key}: {#each Object.keys(maneuverOptions[key]) as subKey}
-              <div class="indent-2">
-                {subKey}:
-                <span class="code">{maneuverOptions[key][subKey]}</span>
-              </div>
-            {/each}
-          </div>
-        {/each}
-      </div>
+      {#if speedOptions}
+        <div class="section">
+          <span class="bold">Speed options:</span>
+          {#each Object.keys(speedOptions) as key}
+            <div class="indent-1">
+              {key}: <span class="code">{speedOptions[key]}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+      {#if maneuverOptions}
+        <div class="section">
+          <span class="bold">Maneuver options:</span>
+          {#each Object.keys(maneuverOptions) as key}
+            <div class="indent-1">
+              {key}: {#each Object.keys(maneuverOptions[key]) as subKey}
+                <div class="indent-2">
+                  {subKey}:
+                  <span class="code">{maneuverOptions[key][subKey]}</span>
+                </div>
+              {/each}
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
   </div>
   <button class="primary-button" on:click={() => (open = true)}
@@ -177,7 +188,7 @@
     </div>
     <div class="options">
       <ManeuverConfiguration
-        {maneuverOptions}
+        maneuverOptions={maneuverOptions || {}}
         defaultPitch={routingOptions.pitch}
         defaultZoom={routingOptions.zoom}
         on:setManeuverOptions={handleSetManeuverOptions}
@@ -230,7 +241,7 @@
   .modal-container {
     display: flex;
     justify-content: space-between;
-    height: 600px;
+    height: 640px;
   }
 
   .options {
@@ -253,8 +264,8 @@
   .toggle-container {
     position: absolute;
     /* Accounts for label space that we don't use */
-    top: -16;
-    right: 0;
+    top: -16px;
+    right: 0px;
   }
 
   :global(.bx--slider) {
