@@ -2,15 +2,8 @@
   import { Modal, NumberInput, Slider, Toggle } from 'carbon-components-svelte';
   import { config as configStore } from '../stores';
   import ManeuverConfiguration from './ManeuverConfiguration.svelte';
-  import {
-    PITCH_MIN,
-    PITCH_MAX,
-    ZOOM_MIN,
-    ZOOM_MAX,
-    SPEED_MIN,
-    SPEED_MAX,
-    NUMBER_INPUT_STEPS,
-  } from '../constants';
+  import RoutingOptions from './RoutingOptions.svelte';
+  import { NUMBER_INPUT_STEPS } from '../constants';
 
   // Required
   let durationMultiplier;
@@ -26,7 +19,7 @@
         value)
   );
 
-  let open = false;
+  let open = true;
 
   let speedOptionsToggle = speedOptions !== undefined;
 
@@ -37,7 +30,9 @@
     pitch: routingOptions.pitch,
   };
 
-  const setRoutingOptions = (property, value) => {
+  const setRoutingOptions = ({ property, value }) => {
+    // We only have to do this because of a weird bug in the number input
+    // We should switch out our number inputs to a separate component system or build our own
     const step = NUMBER_INPUT_STEPS[property] ?? 0.1;
     const decimal = `${step}`.split('.')[1]?.length ?? 0;
     const nextRoutingOptions = {
@@ -53,7 +48,7 @@
     }
   };
 
-  const setSpeedOptions = (property, value) => {
+  const setSpeedOptions = ({ property, value }) => {
     const step = NUMBER_INPUT_STEPS[property] ?? 0.1;
     const decimal = `${step}`.split('.')[1]?.length ?? 0;
     const nextSpeedOptions = {
@@ -157,105 +152,29 @@
         </div>
       </div>
       <div class="option">
-        Routing options:
-        <div class="number-input-container">
-          <NumberInput
-            size="sm"
-            label="Maneuver lead distance"
-            value={routingOptions.leadDistance}
-            min={0}
-            max={500}
-            step={1}
-            on:change={e => setRoutingOptions('leadDistance', e.detail)}
-          />
-        </div>
-        <div class="number-input-container">
-          <NumberInput
-            size="sm"
-            label="pitch"
-            value={routingOptions.pitch}
-            min={PITCH_MIN}
-            max={PITCH_MAX}
-            step={NUMBER_INPUT_STEPS['pitch']}
-            on:change={e => setRoutingOptions('pitch', e.detail)}
-          />
-        </div>
-        <div class="number-input-container">
-          <NumberInput
-            size="sm"
-            label="zoom"
-            value={routingOptions.zoom}
-            step={NUMBER_INPUT_STEPS['zoom']}
-            min={ZOOM_MIN}
-            max={ZOOM_MAX}
-            on:change={e => setRoutingOptions('zoom', e.detail)}
-          />
-        </div>
+        <RoutingOptions
+          title="Routing options"
+          {routingOptions}
+          on:setProperty={e => setRoutingOptions(e.detail)}
+        />
       </div>
       <div class="option">
-        <div class="label-toggle">
-          <span>Speed options:</span>
-          <div class="toggle-container">
-            <Toggle
-              labelA=""
-              labelB=""
-              size="sm"
-              toggled={speedOptionsToggle}
-              on:toggle={e => toggleSpeedOptions(e.detail.toggled)}
-            />
-          </div>
-        </div>
-        <div class="number-input-container">
-          <NumberInput
+        <RoutingOptions
+          title="Speed options"
+          routingOptions={{ ...routingOptions, ...speedOptions }}
+          on:setProperty={e => setSpeedOptions(e.detail)}
+        />
+        <div class="toggle-container">
+          <Toggle
+            labelA=""
+            labelB=""
             size="sm"
-            label="Maneuver lead distance"
-            value={speedOptions?.leadDistance ?? routingOptions.leadDistance}
-            min={0}
-            max={500}
-            step={1}
-            disabled={!speedOptionsToggle}
-            on:change={e => setSpeedOptions('leadDistance', e.detail)}
-          />
-        </div>
-        <div class="number-input-container">
-          <NumberInput
-            size="sm"
-            label="threshold (meters/second)"
-            value={speedOptions?.speed ?? 0}
-            min={SPEED_MIN}
-            max={SPEED_MAX}
-            step={NUMBER_INPUT_STEPS['pitch']}
-            disabled={!speedOptionsToggle}
-            on:change={val => setSpeedOptions('speed', val.detail)}
-          />
-        </div>
-        <div class="number-input-container">
-          <NumberInput
-            size="sm"
-            label="pitch"
-            value={speedOptions?.pitch ?? routingOptions.pitch}
-            min={PITCH_MIN}
-            max={PITCH_MAX}
-            step={NUMBER_INPUT_STEPS['pitch']}
-            disabled={!speedOptionsToggle}
-            on:change={val => setSpeedOptions('pitch', val.detail)}
-          />
-        </div>
-        <div class="number-input-container">
-          <NumberInput
-            size="sm"
-            label="zoom"
-            value={speedOptions?.zoom ?? routingOptions.zoom}
-            step={NUMBER_INPUT_STEPS['zoom']}
-            min={ZOOM_MIN}
-            max={ZOOM_MAX}
-            disabled={!speedOptionsToggle}
-            on:change={val => setSpeedOptions('zoom', val.detail)}
+            toggled={speedOptionsToggle}
+            on:toggle={e => toggleSpeedOptions(e.detail.toggled)}
           />
         </div>
       </div>
     </div>
-    <!-- Maneuvers side we will break this out into its own component -->
     <div class="options">
       <ManeuverConfiguration
         {maneuverOptions}
@@ -322,6 +241,7 @@
   }
 
   .option {
+    position: relative;
     margin-bottom: 24px;
   }
 
@@ -330,17 +250,11 @@
     margin-top: 6px;
   }
 
-  .label-toggle {
-    display: flex;
-    justify-content: space-between;
-  }
-
   .toggle-container {
-    /* This is ugly because these carbon components require labels, we should replace them probably */
-    margin-top: -16px;
-    height: 16px;
-    width: 32px;
-    display: flex;
+    position: absolute;
+    /* Accounts for label space that we don't use */
+    top: -16;
+    right: 0;
   }
 
   :global(.bx--slider) {
