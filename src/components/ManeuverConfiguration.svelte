@@ -14,7 +14,6 @@
 
   const dispatch = createEventDispatcher();
 
-  // Optional
   export let maneuverOptions;
   export let defaultZoom;
   export let defaultPitch;
