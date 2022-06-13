@@ -1,13 +1,13 @@
 <script>
   import { faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
   import Fa from 'svelte-fa/src/fa.svelte';
-  import { validate } from '@mapbox/mapbox-gl-style-spec';
   import 'codemirror/mode/javascript/javascript';
   import CodeMirror from '@joshnuss/svelte-codemirror';
   import {
     routeLineLayer as routeLineLayerStore,
     map as mapStore,
   } from '../stores';
+  import { validateLayer } from '../mapbox-gl-utils';
 
   let routeLineLayer;
   let code;
@@ -34,23 +34,6 @@
     mode: 'javascript',
     lineNumbers: false,
     smartIndent: true,
-  };
-
-  const validateLayer = layer => {
-    const style = {
-      version: 8,
-      sources: {
-        [layer.source]: {
-          data: {
-            type: 'FeatureCollection',
-            features: [],
-          },
-          type: 'geojson',
-        },
-      },
-      layers: [layer],
-    };
-    return validate(JSON.stringify(style));
   };
 
   const parseValidationErrors = errors => {

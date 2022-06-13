@@ -2,7 +2,7 @@
   import { config as configStore, mapStyle as mapStyleStore } from '../stores';
   import { Dropdown, TextInput } from 'carbon-components-svelte';
   import DeviceLayout from './DeviceLayout.svelte';
-  import MapView from './MapView.svelte';
+  import MapboxGlMapView from './MapboxGlMapView.svelte';
   import { fetchStyle } from '../fetch-style';
 
   const INITIAL_DEVICE_INDEX = 0;
@@ -158,7 +158,7 @@
     <DeviceLayout
       {height}
       {width}
-      children={MapView}
+      children={MapboxGlMapView}
       childProps={{ id: style.id, url: style }}
     />
   </div>

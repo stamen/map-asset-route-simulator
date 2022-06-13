@@ -17,7 +17,7 @@
     addRouteLine,
     updateRouteLine,
     createGeojsonSource,
-  } from '../map-assets-utils';
+  } from '../mapbox-gl-utils';
   import {
     ROUTE_LINE_LAYER_ID,
     ROUTE_LINE_SOURCE,
