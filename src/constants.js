@@ -37,3 +37,36 @@ export const DEFAULT_ROUTELINE_PROPERTIES = {
     ],
   },
 };
+
+export const MANEUVERS = [
+  'turn',
+  'new name',
+  'depart',
+  'arrive',
+  'merge',
+  'on ramp',
+  'off ramp',
+  'fork',
+  'end of road',
+  'continue',
+  'roundabout',
+  'rotary',
+  'roundabout turn',
+  'notification',
+  'exit roundabout',
+  'exit rotary',
+];
+
+export const PITCH_MIN = 0;
+// TODO check this pitch max
+export const PITCH_MAX = 85;
+export const ZOOM_MIN = 0;
+export const ZOOM_MAX = 24;
+export const SPEED_MIN = 0;
+export const SPEED_MAX = 30;
+
+export const NUMBER_INPUT_STEPS = {
+  speed: 0.1,
+  pitch: 1,
+  zoom: 0.1,
+};

@@ -266,7 +266,7 @@ const navigate = (map, options) => {
 
       const distanceLeft = distance - distance * phase;
 
-      const leadDistance = maneuverOptions?.leadDistance;
+      const leadDistance = segmentRoutingOptions?.leadDistance;
 
       // ease into maneuver
       if (leadDistance && distanceLeft <= leadDistance) {
