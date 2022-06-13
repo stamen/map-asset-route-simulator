@@ -52,3 +52,5 @@ export const routeLineLayer = writable({
   source: ROUTE_LINE_SOURCE_ID,
   ...layoutAndPaint,
 });
+
+export const fullScreenLoading = writable({ loading: false });
