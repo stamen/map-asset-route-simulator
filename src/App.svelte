@@ -1,12 +1,15 @@
 <script>
   import DisplayArea from './components/DisplayArea.svelte';
   import ControlPanel from './components/ControlPanel.svelte';
+  import Loader from './components/Loader.svelte';
   import {
     config as configStore,
     route as routeStore,
     mapState as mapStateStore,
     routeLineLayer as routeLineLayerStore,
     mapStyle as mapStyleStore,
+    fullScreenLoading as fullScreenLoadingStore,
+    deviceSize as deviceSizeStore,
   } from './stores';
   import { makeConfig } from './make-config';
   import { writeHash } from './query';
@@ -51,9 +54,17 @@
     styleUrl = value !== '' ? value : null;
   });
 
+  let deviceSize = null;
+  deviceSizeStore.subscribe(value => {
+    deviceSize = value ?? null;
+  });
+
+  let fullScreenLoading = { loading: false };
+  // fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
+
   $: {
     if (mapState || locations || routeLine || styleUrl) {
-      writeHash({ locations, routeLine, styleUrl, ...mapState });
+      writeHash({ locations, routeLine, styleUrl, deviceSize, ...mapState });
     }
   }
 </script>
@@ -64,6 +75,9 @@
 <main>
   <ControlPanel />
   <DisplayArea />
+  {#if fullScreenLoading.loading}
+    <Loader helperText={fullScreenLoading.helperText || null} />
+  {/if}
 </main>
 
 <style>

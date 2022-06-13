@@ -52,3 +52,7 @@ export const routeLineLayer = writable({
   source: ROUTE_LINE_SOURCE_ID,
   ...layoutAndPaint,
 });
+
+export const deviceSize = writable(hashObj.deviceSize || null);
+
+export const fullScreenLoading = writable({ loading: false });

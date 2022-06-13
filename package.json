@@ -38,7 +38,8 @@
     "lodash.throttle": "^4.1.1",
     "mapbox-gl": "^2.8.2",
     "sirv-cli": "^1.0.0",
-    "svelte-fa": "^2.4.0"
+    "svelte-fa": "^2.4.0",
+    "svelte-loading-spinners": "^0.1.7"
   },
   "main": "dist/bundle.js"
 }

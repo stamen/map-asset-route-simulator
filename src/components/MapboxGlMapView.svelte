@@ -7,6 +7,7 @@
     map as mapStore,
     mapAssets as mapAssetsStore,
     routeLineLayer as routeLineLayerStore,
+    fullScreenLoading as fullScreenLoadingStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import mapboxgl from 'mapbox-gl';
@@ -17,7 +18,7 @@
     addRouteLine,
     updateRouteLine,
     createGeojsonSource,
-  } from '../map-assets-utils';
+  } from '../mapbox-gl-utils';
   import {
     ROUTE_LINE_LAYER_ID,
     ROUTE_LINE_SOURCE,
@@ -67,6 +68,10 @@
     // Styledata isn't a completely reliable event
     map.once('styledata', () => {
       const callback = () => {
+        fullScreenLoadingStore.set({
+          loading: true,
+          helperText: 'Loading assets',
+        });
         addFigmaImages(map)
           .then(addedIcons => {
             mapAssetsStore.update(store => {
@@ -75,9 +80,14 @@
                 return acc;
               }, {});
             });
-            console.log('Assets loaded');
+            fullScreenLoadingStore.set({
+              loading: false,
+            });
           })
           .catch(err => {
+            fullScreenLoadingStore.set({
+              loading: false,
+            });
             console.error(err);
           });
         addRouteLine(map);

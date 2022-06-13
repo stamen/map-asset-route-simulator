@@ -12,11 +12,7 @@
     map as mapStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
-  import {
-    DEFAULT_GEOCODERS,
-    ROUTE_LINE_LAYER_ID,
-    ROUTE_LINE_SOURCE_ID,
-  } from '../constants';
+  import { DEFAULT_GEOCODERS, ROUTE_LINE_SOURCE_ID } from '../constants';
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));

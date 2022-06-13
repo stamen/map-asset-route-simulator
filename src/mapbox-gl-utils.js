@@ -1,4 +1,5 @@
 import mapboxgl from 'mapbox-gl';
+import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
   routeLineLayer as routeLineLayerStore,
@@ -151,4 +152,21 @@ export const updateRouteLine = (map, directionsApiResponse) => {
   map.fitBounds(bounds, {
     padding: 20,
   });
+};
+
+export const validateLayer = layer => {
+  const style = {
+    version: 8,
+    sources: {
+      [layer.source]: {
+        data: {
+          type: 'FeatureCollection',
+          features: [],
+        },
+        type: 'geojson',
+      },
+    },
+    layers: [layer],
+  };
+  return validate(JSON.stringify(style));
 };
