@@ -60,7 +60,7 @@
   });
 
   let fullScreenLoading = { loading: false };
-  fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
+  // fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
 
   $: {
     if (mapState || locations || routeLine || styleUrl) {

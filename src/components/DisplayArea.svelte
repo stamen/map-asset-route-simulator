@@ -22,13 +22,20 @@
 
   let width = devices[INITIAL_DEVICE_INDEX].width;
   let height = devices[INITIAL_DEVICE_INDEX].height;
-  let selectedDevice = devices[INITIAL_DEVICE_INDEX]?.id ?? 'Responsive';
+  let selectedDevice = devices[INITIAL_DEVICE_INDEX]?.id ?? 'custom';
+
+  let widthInput = null;
+  let heightInput = null;
 
   deviceSizeStore.subscribe(value => {
     if (value) {
       width = value.width;
       height = value.height;
       selectedDevice = value.id;
+      if (selectedDevice === 'custom') {
+        widthInput = width;
+        heightInput = height;
+      }
     }
   });
 
@@ -36,9 +43,11 @@
   let localUrl = '';
   let error;
 
-  const deviceDropdownItems = devices.map(device => {
-    return { id: device.id, text: device.name };
-  });
+  const deviceDropdownItems = devices
+    .map(device => {
+      return { id: device.id, text: device.name };
+    })
+    .concat([{ id: 'custom', text: 'Responsive' }]);
 
   const styleDropdownItems = styles
     .map(style => {
@@ -119,7 +128,26 @@
 
   const handleSetDeviceSize = e => {
     const { selectedId } = e.detail;
+    selectedDevice = selectedId;
+    if (selectedId === 'custom') {
+      widthInput = width;
+      heightInput = height;
+      return;
+    }
+    widthInput = null;
+    heightInput = null;
     const device = devices.find(d => d.id === selectedId);
+    width = device.width;
+    height = device.height;
+    deviceSizeStore.set(device);
+  };
+
+  const submitCustomDeviceSize = () => {
+    const device = {
+      id: 'custom',
+      width: Number(widthInput),
+      height: Number(heightInput),
+    };
     width = device.width;
     height = device.height;
     deviceSizeStore.set(device);
@@ -143,6 +171,31 @@
         on:select={handleSetDeviceSize}
       />
     </div>
+    {#if selectedDevice === 'custom'}
+      <div class="custom-url-container">
+        <div
+          style={`width:${width / 2 - 30}px; border-right:1px solid lightgray`}
+        >
+          <TextInput
+            placeholder="Enter height..."
+            on:input={e => (heightInput = e.detail)}
+            value={heightInput ?? ''}
+          />
+        </div>
+        <div style={`width:${width / 2 - 30}px;`}>
+          <TextInput
+            placeholder="Enter width..."
+            on:input={e => (widthInput = e.detail)}
+            value={widthInput ?? ''}
+          />
+        </div>
+        <button
+          class="submit-button"
+          on:click={submitCustomDeviceSize}
+          disabled={!widthInput || !heightInput}>Submit</button
+        >
+      </div>
+    {/if}
     <div class="dropdown">
       <Dropdown
         titleText="Map styles"
@@ -205,6 +258,7 @@
   .custom-url-container {
     display: flex;
     width: 100%;
+    margin-bottom: 12px;
   }
 
   .submit-button {
