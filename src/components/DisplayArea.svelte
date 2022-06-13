@@ -1,5 +1,9 @@
 <script>
-  import { config as configStore, mapStyle as mapStyleStore } from '../stores';
+  import {
+    config as configStore,
+    mapStyle as mapStyleStore,
+    deviceSize as deviceSizeStore,
+  } from '../stores';
   import { Dropdown, TextInput } from 'carbon-components-svelte';
   import DeviceLayout from './DeviceLayout.svelte';
   import MapboxGlMapView from './MapboxGlMapView.svelte';
@@ -18,6 +22,15 @@
 
   let width = devices[INITIAL_DEVICE_INDEX].width;
   let height = devices[INITIAL_DEVICE_INDEX].height;
+  let selectedDevice = devices[INITIAL_DEVICE_INDEX]?.id ?? 'Responsive';
+
+  deviceSizeStore.subscribe(value => {
+    if (value) {
+      width = value.width;
+      height = value.height;
+      selectedDevice = value.id;
+    }
+  });
 
   let textInput = '';
   let localUrl = '';
@@ -109,6 +122,7 @@
     const device = devices.find(d => d.id === selectedId);
     width = device.width;
     height = device.height;
+    deviceSizeStore.set(device);
   };
 
   $: {
@@ -124,7 +138,7 @@
     <div class="dropdown">
       <Dropdown
         titleText="Devices"
-        selectedId={deviceDropdownItems?.[INITIAL_DEVICE_INDEX]?.id}
+        selectedId={selectedDevice}
         items={deviceDropdownItems}
         on:select={handleSetDeviceSize}
       />
