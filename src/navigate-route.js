@@ -117,10 +117,10 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
       false
     );
 
+    // Always choose the shortest distance between the two to get the correct direction
     const isClockwise =
       clockwiseDistance < counterClockwiseDistance ? true : false;
 
-    // Always choose the shortest distance between the two to get the right direction
     const pointDistance = isClockwise
       ? clockwiseDistance
       : counterClockwiseDistance;
