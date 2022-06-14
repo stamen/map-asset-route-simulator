@@ -26,7 +26,7 @@ export const waitForStyleUpdate = (map, cb) => {
 };
 
 // This function lets us continually feed in a new lat/lng to the source of puck to move it along the route
-export const setPuckLocation = (map, point) => {
+export const setPuckLocation = (map, point, bearing) => {
   if (!mapAssets[PUCK]) return;
 
   const nextPuckLocation = {
@@ -38,9 +38,13 @@ export const setPuckLocation = (map, point) => {
   };
 
   map.getSource(PUCK) && map.getSource(PUCK).setData(nextPuckLocation);
+
+  if (map.getLayer(PUCK)) {
+    map.setLayoutProperty(PUCK, 'icon-rotate', bearing);
+  }
 };
 
-export const setMarkerLayer = (map, point, markerId, pitchAlignment) => {
+export const setMarkerLayer = (map, point, markerId, layoutProperties) => {
   if (!mapAssets[markerId]) {
     console.warn(`${markerId} is not loaded.`);
     return;
@@ -69,7 +73,7 @@ export const setMarkerLayer = (map, point, markerId, pitchAlignment) => {
       layout: {
         'icon-image': markerId,
         'icon-allow-overlap': true,
-        'icon-pitch-alignment': pitchAlignment,
+        ...layoutProperties,
       },
     });
   }

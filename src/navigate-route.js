@@ -87,9 +87,8 @@ const smoothBearing = (bearing, nextBearing) => {
   distance = Math.min(distance, threshhold);
 
   // as distance gets closer to 0, we want phase to increase
-  const phase = scale(threshhold - distance, 0, threshhold, 0.05, 0.25);
+  const phase = scale(threshhold - distance, 0, threshhold, 0.05, 0.5);
 
-  // TODO Revisit the hardcoded 0.25
   const smoothed = calculateBearing(bearing, nextBearing, isClockwise, phase);
 
   return smoothed;
@@ -104,17 +103,27 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
     let start;
     let bearing = bearingBefore;
 
-    if (!modifier || !bearing_after || modifier.includes('straight'))
-      return resolve(bearing);
+    if (!modifier || !bearing_after) return resolve(bearing);
 
-    // TODO: modifier 'uturn' is unhandled and will always turn right
-    const isClockwise = modifier.includes('left') ? false : true;
-
-    const pointDistance = calculatePointDistance(
+    const clockwiseDistance = calculatePointDistance(
       bearingBefore,
       bearing_after,
-      isClockwise
+      true
     );
+
+    const counterClockwiseDistance = calculatePointDistance(
+      bearingBefore,
+      bearing_after,
+      false
+    );
+
+    const isClockwise =
+      clockwiseDistance < counterClockwiseDistance ? true : false;
+
+    // Always choose the shortest distance between the two to get the right direction
+    const pointDistance = isClockwise
+      ? clockwiseDistance
+      : counterClockwiseDistance;
 
     // The 5 here is arbitrary, but feels about right since maneuvers don't have a duration and
     // point distance is not the same as meters travelled
@@ -134,6 +143,8 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
         isClockwise,
         phase
       );
+
+      setPuckLocation(map, location, bearing);
 
       map.jumpTo({
         center: location,
@@ -201,21 +212,15 @@ const navigate = (map, options) => {
     const currentBearing =
       map.getBearing() < 0 ? 360 + map.getBearing() : map.getBearing();
     // The maneuver in the step object is that which preceded the segment
+
     let bearing = await handleManeuver(map, maneuver, currentBearing);
 
     const targetRoute = coordinates;
-    const lookAheadIndex = 1;
-    const lookAheadRoute = coordinates
-      .slice(lookAheadIndex)
-      .concat(Array(lookAheadIndex).fill(coordinates[coordinates.length - 1]));
 
     // multiplier is arbitrary. Duration is in seconds, but actual realistic timing is very slow
     const animationDuration = duration * durationMultiplier;
     // get the overall distance of each route so we can interpolate along them
     const routeDistance = turf.lineDistance(turf.lineString(targetRoute));
-    const lookAheadDistance = turf.lineDistance(
-      turf.lineString(lookAheadRoute)
-    );
 
     let easeInPitch;
     let easeInZoom;
@@ -235,8 +240,8 @@ const navigate = (map, options) => {
       ).geometry.coordinates;
 
       const alongLookAhead = turf.along(
-        turf.lineString(lookAheadRoute),
-        lookAheadDistance * phase
+        turf.lineString(targetRoute),
+        routeDistance * Math.min(phase + 0.025, 1)
       ).geometry.coordinates;
 
       // phase is normalized between 0 and 1
@@ -255,14 +260,14 @@ const navigate = (map, options) => {
         latitude: alongRoute[1],
       };
 
-      setPuckLocation(map, alongRoute);
-
       let pitch;
       let zoom;
 
       // calculate the bearing based on the angle between the point we're at in the route and the look ahead point
       let nextBearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
       bearing = smoothBearing(bearing, nextBearing);
+
+      setPuckLocation(map, alongRoute, nextBearing);
 
       const distanceLeft = distance - distance * phase;
 
@@ -291,7 +296,8 @@ const navigate = (map, options) => {
                 : segmentRoutingOptions.zoom,
           },
           distanceLeft,
-          leadDistance
+          // When there's not enough distance to cover on segment, we handle this faster
+          Math.min(leadDistance, distance)
         );
 
         pitch = easedPosition.pitch;
@@ -312,7 +318,7 @@ const navigate = (map, options) => {
             zoom: segmentRoutingOptions.zoom,
           },
           leadDistance - distance * phase,
-          leadDistance
+          Math.min(leadDistance, distance)
         );
         pitch = easedPosition.pitch;
         zoom = easedPosition.zoom;
@@ -344,7 +350,7 @@ const navigateSteps = async (map, route) => {
   for (const leg of route.legs) {
     for (let i = 0; i < leg.steps.length; i++) {
       const step = leg.steps[i];
-      const { distance, duration, geometry, maneuver, intersections } = step;
+      const { distance, duration, geometry, maneuver } = step;
       const nextManeuver = leg.steps?.[i + 1]?.maneuver;
 
       await navigate(map, {
@@ -352,7 +358,6 @@ const navigateSteps = async (map, route) => {
         distance,
         coordinates: geometry.coordinates,
         maneuver,
-        intersections,
         nextManeuver,
       });
     }
@@ -378,10 +383,16 @@ const navigateRoute = (map, route) => {
     const end = fullCoords[fullCoords.length - 1];
 
     if (mapAssets[DESTINATION_PIN]) {
-      setMarkerLayer(map, end, DESTINATION_PIN, 'viewport');
+      setMarkerLayer(map, end, DESTINATION_PIN, {
+        'icon-pitch-alignment': 'viewport',
+        'icon-offset': [0, mapAssets[DESTINATION_PIN].height * -0.5],
+      });
     }
     if (mapAssets[PUCK]) {
-      setMarkerLayer(map, start, PUCK, 'map');
+      setMarkerLayer(map, start, PUCK, {
+        'icon-pitch-alignment': 'map',
+        'icon-rotation-alignment': 'map',
+      });
     }
 
     const initialBearing =

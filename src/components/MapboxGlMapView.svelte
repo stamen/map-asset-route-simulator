@@ -76,7 +76,7 @@
           .then(addedIcons => {
             mapAssetsStore.update(store => {
               return Object.keys(store).reduce((acc, k) => {
-                acc[k] = addedIcons.includes(k) ? true : false;
+                acc[k] = addedIcons.find(item => item.name === k) ?? null;
                 return acc;
               }, {});
             });
