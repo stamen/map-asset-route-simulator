@@ -373,19 +373,6 @@ const navigateRoute = (map, route) => {
     const start = fullCoords[0];
     const end = fullCoords[fullCoords.length - 1];
 
-    if (mapAssets[DESTINATION_PIN]) {
-      setMarkerLayer(map, end, DESTINATION_PIN, {
-        'icon-pitch-alignment': 'viewport',
-        'icon-offset': [0, mapAssets[DESTINATION_PIN].height * -0.5],
-      });
-    }
-    if (mapAssets[PUCK]) {
-      setMarkerLayer(map, start, PUCK, {
-        'icon-pitch-alignment': 'map',
-        'icon-rotation-alignment': 'map',
-      });
-    }
-
     const initialBearing =
       route?.legs?.[0]?.steps?.[0]?.maneuver?.bearing_after || 0;
 
@@ -401,6 +388,19 @@ const navigateRoute = (map, route) => {
     });
 
     map.once('moveend', () => {
+      if (mapAssets[DESTINATION_PIN]) {
+        setMarkerLayer(map, end, DESTINATION_PIN, {
+          'icon-pitch-alignment': 'viewport',
+          'icon-offset': [0, mapAssets[DESTINATION_PIN].height * -0.5],
+        });
+      }
+      if (mapAssets[PUCK]) {
+        setMarkerLayer(map, start, PUCK, {
+          'icon-pitch-alignment': 'map',
+          'icon-rotation-alignment': 'map',
+        });
+      }
+
       navigateSteps(map, route).then(e => {
         res(e);
       });
