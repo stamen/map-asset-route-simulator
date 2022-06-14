@@ -1,5 +1,4 @@
 import * as turf from '@turf/turf';
-import * as geolib from 'geolib';
 import {
   config as configStore,
   map,
@@ -127,7 +126,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
 
     // The 5 here is arbitrary, but feels about right since maneuvers don't have a duration and
     // point distance is not the same as meters travelled
-    const animationDuration = (pointDistance * durationMultiplier) / 5;
+    const animationDuration = (pointDistance * durationMultiplier) / 10;
 
     function frame(time) {
       if (!start) start = time;
@@ -250,21 +249,13 @@ const navigate = (map, options) => {
         return resolve({ segmentComplete: true });
       }
 
-      let lookAheadPoint = {
-        longitude: alongLookAhead[0],
-        latitude: alongLookAhead[1],
-      };
-
-      const routePoint = {
-        longitude: alongRoute[0],
-        latitude: alongRoute[1],
-      };
-
       let pitch;
       let zoom;
 
       // calculate the bearing based on the angle between the point we're at in the route and the look ahead point
-      let nextBearing = geolib.getRhumbLineBearing(routePoint, lookAheadPoint);
+      let nextBearing = normalizeBearing(
+        turf.rhumbBearing(turf.point(alongRoute), turf.point(alongLookAhead))
+      );
       bearing = smoothBearing(bearing, nextBearing);
 
       setPuckLocation(map, alongRoute, nextBearing);
