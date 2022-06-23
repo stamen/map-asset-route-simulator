@@ -269,7 +269,7 @@ const navigate = (map, options) => {
         if (!easeInPitch) easeInPitch = map.getPitch();
         if (!easeInZoom) easeInZoom = map.getZoom();
 
-        const maneuverBehavior = maneuverOptions?.[nextManeuver.type];
+        const maneuverBehavior = maneuverOptions?.[nextManeuver?.type];
 
         const easedPosition = easePitchAndZoom(
           {
