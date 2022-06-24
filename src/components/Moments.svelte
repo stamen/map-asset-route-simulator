@@ -8,10 +8,12 @@
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
 
-  let route;
+  let route = null;
   routeStore.subscribe(value => {
     if (value && value?.response) {
       route = value?.response?.routes?.[0];
+    } else {
+      route = null;
     }
   });
   let map;
@@ -39,6 +41,8 @@
     for (let i = 0; i < allSteps.length; i++) {
       const options = { units: 'meters' };
 
+      // For each maneuver, we need the lead time from the previous step as well as
+      // The maneuver and step following
       const prevStep = allSteps?.[i - 1];
       const step = allSteps[i];
 
@@ -55,7 +59,7 @@
       let slicedStart = prevGeom;
       let slicedEnd = geometry;
 
-      if (prevLength !== 0 && prevGeom) {
+      if (prevLength) {
         slicedDistanceStart = Math.min(tempLeadDistance, prevLength);
 
         slicedStart = turf.lineSliceAlong(
@@ -65,7 +69,7 @@
           options
         )?.geometry;
       }
-      if (slicedDistanceEnd !== 0) {
+      if (slicedDistanceEnd) {
         slicedEnd = turf.lineSliceAlong(
           geometry,
           0,
@@ -105,8 +109,12 @@
     }
   };
 
-  $: if (route) {
-    setManeuverRoutes(route);
+  $: {
+    if (route) {
+      setManeuverRoutes(route);
+    } else {
+      maneuverRoutes = [];
+    }
   }
 
   const navigate = maneuverRoute => {
@@ -125,7 +133,7 @@
     navigateRoute(map, navRoute);
   };
 
-  $: if (maneuverRoutes.length) {
+  $: {
     maneuverDropdownItems = maneuverRoutes.map(item => {
       const { type, instruction } = item.maneuver;
       const text = `${type}: ${instruction}`;
@@ -149,11 +157,12 @@
     {selectedId}
     label="Select a maneuver"
     items={maneuverDropdownItems}
+    disabled={!maneuverRoutes.length}
     on:select={e => selectManeuver(e.detail.selectedId)}
   />
   <button
     class="primary-button"
-    disabled={!selectedId}
+    disabled={!selectedId || !maneuverRoutes.length}
     on:click={runManeuverRoute}>Submit</button
   >
 </div>
