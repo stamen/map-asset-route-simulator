@@ -37,23 +37,27 @@
       .reduce((acc, steps) => acc.concat(steps), []);
 
     for (let i = 0; i < allSteps.length; i++) {
+      const options = { units: 'meters' };
+
       const prevStep = allSteps?.[i - 1];
       const step = allSteps[i];
+
       const { geometry, duration, maneuver } = step;
-      const options = { units: 'meters' };
+
+      const prevGeom = prevStep?.geometry;
+
+      const prevLength = prevGeom && turf.length(prevGeom, options);
       const length = turf.length(geometry, options);
-      const slicedDistance = Math.min(tempLeadDistance, length);
 
-      const prevGeom = prevStep?.geometry ?? {
-        type: 'LineString',
-        coordinates: [maneuver.location],
-      };
-      const prevLength = turf.length(prevGeom, options);
+      let slicedDistanceStart;
+      let slicedDistanceEnd = Math.min(tempLeadDistance, length);
 
-      let slicedStart = geometry;
+      let slicedStart = prevGeom;
       let slicedEnd = geometry;
 
-      if (prevLength !== 0) {
+      if (prevLength !== 0 && prevGeom) {
+        slicedDistanceStart = Math.min(tempLeadDistance, prevLength);
+
         slicedStart = turf.lineSliceAlong(
           prevGeom,
           Math.max(0, prevLength - tempLeadDistance),
@@ -61,33 +65,42 @@
           options
         )?.geometry;
       }
-      if (slicedDistance !== 0) {
+      if (slicedDistanceEnd !== 0) {
         slicedEnd = turf.lineSliceAlong(
           geometry,
           0,
-          slicedDistance,
+          slicedDistanceEnd,
           options
         )?.geometry;
       }
 
-      const slicedDuration =
+      let slicedDurationStart =
+        (Math.min(tempLeadDistance, prevLength) / prevLength) *
+          prevStep?.duration ?? 0;
+
+      let slicedDurationEnd =
         (Math.min(tempLeadDistance, length) / length) * duration;
 
       const stepOne = {
         geometry: slicedStart,
-        distance: slicedDistance,
-        duration: slicedDuration,
+        distance: slicedDistanceStart,
+        duration: slicedDurationStart,
         maneuver: { bearing_after: maneuver.bearing_before },
       };
       const stepTwo = {
         geometry: slicedEnd,
-        distance: slicedDistance,
-        duration: slicedDuration,
+        distance: slicedDistanceEnd,
+        duration: slicedDurationEnd,
         maneuver,
       };
 
       maneuverRoutes = maneuverRoutes.concat([
-        { maneuver, steps: [stepOne, stepTwo], id: `${i}` },
+        {
+          maneuver,
+          // Departure doesn't have a before geometry so doesn't get a step one
+          steps: slicedStart ? [stepOne, stepTwo] : [stepTwo],
+          id: `${i}`,
+        },
       ]);
     }
   };
@@ -97,13 +110,16 @@
   }
 
   const navigate = maneuverRoute => {
-    const coords = maneuverRoute?.steps?.[0]?.geometry?.coordinates.concat(
-      maneuverRoute?.steps?.[1]?.geometry?.coordinates
+    const maneuverRouteSteps = maneuverRoute?.steps || [];
+    const coords = maneuverRouteSteps.reduce(
+      (acc, step) => acc.concat(step?.geometry?.coordinates || []),
+      []
     );
     const geometry = {
       ...maneuverRoute?.geometry,
       coordinates: coords,
     };
+
     const navRoute = { geometry, legs: [{ steps: maneuverRoute.steps }] };
 
     navigateRoute(map, navRoute);

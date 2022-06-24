@@ -373,8 +373,10 @@ const navigateRoute = (map, route) => {
     const start = fullCoords[0];
     const end = fullCoords[fullCoords.length - 1];
 
-    const initialBearing =
-      route?.legs?.[0]?.steps?.[0]?.maneuver?.bearing_after || 0;
+    const routeSteps = route?.legs?.[0]?.steps;
+    const initialBearing = routeSteps?.[0]?.maneuver?.bearing_after || 0;
+    const includesArrive =
+      routeSteps[routeSteps.length - 1]?.maneuver?.type === 'arrive';
 
     // Ease to the start of the route
     map.easeTo({
@@ -388,7 +390,7 @@ const navigateRoute = (map, route) => {
     });
 
     map.once('moveend', () => {
-      if (mapAssets[DESTINATION_PIN]) {
+      if (mapAssets[DESTINATION_PIN] && includesArrive) {
         setMarkerLayer(map, end, DESTINATION_PIN, {
           'icon-pitch-alignment': 'viewport',
           'icon-offset': [0, mapAssets[DESTINATION_PIN].height * -0.5],
