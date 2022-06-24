@@ -11,6 +11,8 @@ import {
   removeMarkerLayer,
 } from './mapbox-gl-utils';
 
+let currentRoute;
+
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
@@ -344,6 +346,9 @@ const navigateSteps = async (map, route) => {
       const { distance, duration, geometry, maneuver } = step;
       const nextManeuver = leg.steps?.[i + 1]?.maneuver;
 
+      // If we call a moment during a route, cancel the route
+      if (JSON.stringify(route) !== JSON.stringify(currentRoute)) return;
+
       await navigate(map, {
         duration,
         distance,
@@ -368,6 +373,7 @@ const navigateSteps = async (map, route) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
+  currentRoute = route;
   return new Promise(res => {
     const fullCoords = route?.geometry?.coordinates;
     const start = fullCoords[0];
