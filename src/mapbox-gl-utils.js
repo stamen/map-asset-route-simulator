@@ -90,8 +90,6 @@ export const removeMarkerLayer = (map, markerId) => {
 
 export const addRouteLine = map => {
   const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
-  // Check that the first route line layer is loaded
-  const layerLoaded = !!map.getLayer(`${ROUTE_LINE_LAYER_ID_PREFIX}_0`);
 
   if (!sourceLoaded) {
     map.addSource(ROUTE_LINE_SOURCE_ID, {
@@ -103,15 +101,20 @@ export const addRouteLine = map => {
     });
   }
 
+  // Check that the first route line layer is loaded
+  const layerLoaded = !!map.getLayer(`${ROUTE_LINE_LAYER_ID_PREFIX}_0`);
+
   if (!layerLoaded) {
-    const lowestSymbolLayerId = map
+    let lowestSymbolLayerId = map
       .getStyle()
       .layers.find(l => l.type === 'symbol' && l?.layout?.['text-field'])?.id;
 
     // TODO make sure this layer name doesn't exist
     // TODO decide if we want to allow empty layer in style or just add our own
     routeLineLayers.forEach(layer => {
-      map.addLayer(layer, lowestSymbolLayerId);
+      const layerLoaded = !!map.getLayer(layer.id);
+      !layerLoaded && map.addLayer(layer, lowestSymbolLayerId);
+      lowestSymbolLayerId = layer.id;
     });
   }
 };
