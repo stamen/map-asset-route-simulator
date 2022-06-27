@@ -1,15 +1,16 @@
 <script>
+  import { createEventDispatcher } from 'svelte';
   import { faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
   import Fa from 'svelte-fa/src/fa.svelte';
   import 'codemirror/mode/javascript/javascript';
   import CodeMirror from '@joshnuss/svelte-codemirror';
-  import {
-    routeLineLayer as routeLineLayerStore,
-    map as mapStore,
-  } from '../stores';
+  import { map as mapStore } from '../stores';
   import { validateLayer } from '../mapbox-gl-utils';
 
-  let routeLineLayer;
+  const dispatch = createEventDispatcher();
+
+  export let routeLineLayer;
+  export let index;
   let code;
   let editor;
   let errors = [];
@@ -23,10 +24,9 @@
     code = JSON.stringify(exposedLayer, null, 2);
   };
 
-  routeLineLayerStore.subscribe(value => {
-    routeLineLayer = value[0];
+  $: if (routeLineLayer) {
     setCodeFromLayer(routeLineLayer);
-  });
+  }
 
   mapStore.subscribe(value => (map = value));
 
@@ -72,7 +72,7 @@
         )
     ) {
       const nextRouteLine = { ...routeLineLayer, ...JSON.parse(code) };
-      routeLineLayerStore.set([nextRouteLine]);
+      dispatch('setRouteLine', { index, layer: nextRouteLine });
     }
   }
 
