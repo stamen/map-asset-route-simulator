@@ -37,15 +37,19 @@
         : null;
   });
 
-  let routeLine = null;
+  let routeLines = null;
   routeLineLayerStore.subscribe(value => {
-    const nextValue = { layout: value.layout, paint: value.paint };
-    if (
-      JSON.stringify(DEFAULT_ROUTELINE_PROPERTIES) !== JSON.stringify(nextValue)
-    ) {
-      routeLine = nextValue;
+    const nextValue = value.map(layer => ({
+      layout: layer.layout,
+      paint: layer.paint,
+    }));
+
+    const defaults = value.map(() => DEFAULT_ROUTELINE_PROPERTIES);
+
+    if (JSON.stringify(defaults) !== JSON.stringify(nextValue)) {
+      routeLines = nextValue;
     } else {
-      routeLine = null;
+      routeLines = null;
     }
   });
 
@@ -60,11 +64,11 @@
   });
 
   let fullScreenLoading = { loading: false };
-  fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
+  // fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
 
   $: {
-    if (mapState || locations || routeLine || styleUrl) {
-      writeHash({ locations, routeLine, styleUrl, deviceSize, ...mapState });
+    if (mapState || locations || routeLines || styleUrl) {
+      writeHash({ locations, routeLines, styleUrl, deviceSize, ...mapState });
     }
   }
 </script>

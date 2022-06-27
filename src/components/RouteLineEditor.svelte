@@ -1,15 +1,16 @@
 <script>
-  import { faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
+  import { createEventDispatcher } from 'svelte';
+  import { faXmark, faCheck, faTrash } from '@fortawesome/free-solid-svg-icons';
   import Fa from 'svelte-fa/src/fa.svelte';
   import 'codemirror/mode/javascript/javascript';
   import CodeMirror from '@joshnuss/svelte-codemirror';
-  import {
-    routeLineLayer as routeLineLayerStore,
-    map as mapStore,
-  } from '../stores';
+  import { map as mapStore } from '../stores';
   import { validateLayer } from '../mapbox-gl-utils';
 
-  let routeLineLayer;
+  const dispatch = createEventDispatcher();
+
+  export let routeLineLayer;
+  export let index;
   let code;
   let editor;
   let errors = [];
@@ -23,10 +24,9 @@
     code = JSON.stringify(exposedLayer, null, 2);
   };
 
-  routeLineLayerStore.subscribe(value => {
-    routeLineLayer = value;
+  $: if (routeLineLayer) {
     setCodeFromLayer(routeLineLayer);
-  });
+  }
 
   mapStore.subscribe(value => (map = value));
 
@@ -72,7 +72,7 @@
         )
     ) {
       const nextRouteLine = { ...routeLineLayer, ...JSON.parse(code) };
-      routeLineLayerStore.set(nextRouteLine);
+      dispatch('setRouteLine', { index, layer: nextRouteLine });
     }
   }
 
@@ -85,6 +85,10 @@
       });
     }
   }
+
+  const deleteLayer = () => {
+    dispatch('deleteLayer', { index });
+  };
 </script>
 
 <div>
@@ -100,6 +104,10 @@
         color={errors.length ? 'red' : 'green'}
       />
     </div>
+    {#if index !== 0}
+      <button class="trash" on:click={deleteLayer}><Fa icon={faTrash} /></button
+      >
+    {/if}
   </div>
   {#each errors as error}
     <div class="error">{error}</div>
@@ -135,5 +143,18 @@
     padding: 6px;
     color: white;
     max-width: 240px;
+  }
+
+  .trash {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 12px;
+    padding: 6px;
+    height: 24px;
+    width: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 </style>

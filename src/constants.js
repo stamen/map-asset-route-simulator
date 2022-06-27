@@ -9,7 +9,7 @@ export const DEFAULT_GEOCODERS = [
 ];
 
 export const ROUTE_LINE_SOURCE_ID = 'route-line-internal-mock-source';
-export const ROUTE_LINE_LAYER_ID = 'route-line-internal-mock-layer';
+export const ROUTE_LINE_LAYER_ID_PREFIX = 'route-line-internal-mock-layer';
 
 export const ROUTE_LINE_SOURCE = {
   type: 'geojson',
