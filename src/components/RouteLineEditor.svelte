@@ -24,7 +24,7 @@
   };
 
   routeLineLayerStore.subscribe(value => {
-    routeLineLayer = value;
+    routeLineLayer = value[0];
     setCodeFromLayer(routeLineLayer);
   });
 
@@ -72,7 +72,7 @@
         )
     ) {
       const nextRouteLine = { ...routeLineLayer, ...JSON.parse(code) };
-      routeLineLayerStore.set(nextRouteLine);
+      routeLineLayerStore.set([nextRouteLine]);
     }
   }
 

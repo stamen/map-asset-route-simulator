@@ -4,13 +4,17 @@ import {
   mapAssets as mapAssetsStore,
   routeLineLayer as routeLineLayerStore,
 } from './stores';
-import { PUCK, ROUTE_LINE_SOURCE_ID, ROUTE_LINE_LAYER_ID } from './constants';
+import {
+  PUCK,
+  ROUTE_LINE_SOURCE_ID,
+  ROUTE_LINE_LAYER_ID_PREFIX,
+} from './constants';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
-let routeLineLayer;
-routeLineLayerStore.subscribe(value => (routeLineLayer = value));
+let routeLineLayers;
+routeLineLayerStore.subscribe(value => (routeLineLayers = value));
 
 export const waitForStyleUpdate = (map, cb) => {
   map.once('styledata', () => {
@@ -86,7 +90,8 @@ export const removeMarkerLayer = (map, markerId) => {
 
 export const addRouteLine = map => {
   const sourceLoaded = !!map.getSource(ROUTE_LINE_SOURCE_ID);
-  const layerLoaded = !!map.getLayer(ROUTE_LINE_LAYER_ID);
+  // Check that the first route line layer is loaded
+  const layerLoaded = !!map.getLayer(`${ROUTE_LINE_LAYER_ID_PREFIX}_0`);
 
   if (!sourceLoaded) {
     map.addSource(ROUTE_LINE_SOURCE_ID, {
@@ -105,7 +110,9 @@ export const addRouteLine = map => {
 
     // TODO make sure this layer name doesn't exist
     // TODO decide if we want to allow empty layer in style or just add our own
-    map.addLayer(routeLineLayer, lowestSymbolLayerId);
+    routeLineLayers.forEach(layer => {
+      map.addLayer(layer, lowestSymbolLayerId);
+    });
   }
 };
 

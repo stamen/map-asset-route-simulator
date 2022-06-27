@@ -20,7 +20,7 @@
     createGeojsonSource,
   } from '../mapbox-gl-utils';
   import {
-    ROUTE_LINE_LAYER_ID,
+    ROUTE_LINE_LAYER_ID_PREFIX,
     ROUTE_LINE_SOURCE,
     ROUTE_LINE_SOURCE_ID,
   } from '../constants';
@@ -37,8 +37,8 @@
   let mapState;
   mapStateStore.subscribe(value => (mapState = value));
 
-  let routeLineLayer;
-  routeLineLayerStore.subscribe(value => (routeLineLayer = value));
+  let routeLineLayers;
+  routeLineLayerStore.subscribe(value => (routeLineLayers = value));
 
   mapboxgl.accessToken = mapboxGlAccessToken;
 
@@ -123,8 +123,8 @@
         // If stylesheet, add layer and source manually
         // Usually because of polling from a local server
         const stylesheet = url;
-        const hasRouteLine = stylesheet.layers.find(
-          l => l.id === ROUTE_LINE_LAYER_ID
+        const hasRouteLine = stylesheet.layers.find(l =>
+          l.id.includes(ROUTE_LINE_LAYER_ID_PREFIX)
         );
         // This isn't a very accurate way to determine placement, but will do for now
         const lowestSymbolLayerIndex =
@@ -132,7 +132,11 @@
             l => l.type === 'symbol' && l?.layout?.['text-field']
           ) || stylesheet.layers.length;
         !hasRouteLine &&
-          stylesheet.layers.splice(lowestSymbolLayerIndex, 0, routeLineLayer);
+          stylesheet.layers.splice(
+            lowestSymbolLayerIndex,
+            0,
+            ...routeLineLayers
+          );
         const geometries = createGeojsonSource(directionsApiResponse);
         let source = geometries
           ? { type: 'geojson', data: geometries.highResGeom }

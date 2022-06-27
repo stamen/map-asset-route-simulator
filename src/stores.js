@@ -1,7 +1,7 @@
 import { readHash } from './query';
 import { writable } from 'svelte/store';
 import {
-  ROUTE_LINE_LAYER_ID,
+  ROUTE_LINE_LAYER_ID_PREFIX,
   ROUTE_LINE_SOURCE_ID,
   DEFAULT_ROUTELINE_PROPERTIES,
 } from './constants';
@@ -41,17 +41,29 @@ export const mapAssets = writable({ puck: null, 'destination-pin': null });
 export const mapStyle = writable(hashObj.styleUrl || '');
 
 // Route line layer store
-let layoutAndPaint = {
-  layout: hashObj?.routeLine?.layout ?? DEFAULT_ROUTELINE_PROPERTIES.layout,
-  paint: hashObj?.routeLine?.paint ?? DEFAULT_ROUTELINE_PROPERTIES.paint,
-};
+const routelines = hashObj?.routeLines
+  ? hashObj?.routeLines.map((line, i) => {
+      let layoutAndPaint = {
+        layout: line?.layout,
+        paint: line?.paint,
+      };
+      return {
+        id: `${ROUTE_LINE_LAYER_ID_PREFIX}_${i}`,
+        type: 'line',
+        source: ROUTE_LINE_SOURCE_ID,
+        ...layoutAndPaint,
+      };
+    })
+  : [
+      {
+        id: `${ROUTE_LINE_LAYER_ID_PREFIX}_0`,
+        type: 'line',
+        source: ROUTE_LINE_SOURCE_ID,
+        ...DEFAULT_ROUTELINE_PROPERTIES,
+      },
+    ];
 // TODO decide if we want to pull this from style instead
-export const routeLineLayer = writable({
-  id: ROUTE_LINE_LAYER_ID,
-  type: 'line',
-  source: ROUTE_LINE_SOURCE_ID,
-  ...layoutAndPaint,
-});
+export const routeLineLayer = writable(routelines);
 
 export const deviceSize = writable(hashObj.deviceSize || null);
 
