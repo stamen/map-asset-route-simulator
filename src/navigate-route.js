@@ -194,7 +194,8 @@ const easePitchAndZoom = (before, after, distanceToCover, maxDistance) => {
 // Navigates a route step with options passed from the step object
 const navigate = (map, options) => {
   return new Promise(async resolve => {
-    const { distance, duration, coordinates, maneuver, nextManeuver } = options;
+    const { route, distance, duration, coordinates, maneuver, nextManeuver } =
+      options;
 
     // In meters per second
     const speed = distance / duration;
@@ -231,6 +232,11 @@ const navigate = (map, options) => {
     let start;
 
     function frame(time) {
+      // If we call a moment during a route, cancel the step
+      if (JSON.stringify(route) !== JSON.stringify(currentRoute)) {
+        return resolve({ segmentComplete: true });
+      }
+
       if (!start) start = time;
       // phase determines how far through the animation we are
       const phase = (time - start) / animationDuration;
@@ -350,6 +356,7 @@ const navigateSteps = async (map, route) => {
       if (JSON.stringify(route) !== JSON.stringify(currentRoute)) return;
 
       await navigate(map, {
+        route,
         duration,
         distance,
         coordinates: geometry.coordinates,

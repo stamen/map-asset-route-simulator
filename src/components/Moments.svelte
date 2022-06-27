@@ -1,11 +1,7 @@
 <script>
   import * as turf from '@turf/turf';
   import { Dropdown } from 'carbon-components-svelte';
-  import {
-    route as routeStore,
-    map as mapStore,
-    fullScreenLoading as fullScreenLoadingStore,
-  } from '../stores';
+  import { route as routeStore, map as mapStore } from '../stores';
   import { navigateRoute } from '../navigate-route';
 
   let route = null;
@@ -18,9 +14,6 @@
   });
   let map;
   mapStore.subscribe(value => (map = value));
-
-  let fullScreenLoading = { loading: false };
-  fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
 
   const tempLeadDistance = 125;
 
