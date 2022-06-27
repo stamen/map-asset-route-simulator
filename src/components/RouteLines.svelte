@@ -29,6 +29,14 @@
     });
   };
 
+  const handleDeleteLayer = e => {
+    const { index } = e.detail;
+    routeLineLayerStore.update(value => {
+      value.splice(index, 1);
+      return value;
+    });
+  };
+
   // Order here is specific
   const routeLineDropdownOptions = [
     {
@@ -77,6 +85,7 @@
       routeLineLayer={activeLayer}
       index={Number(selectedId)}
       on:setRouteLine={handleSetRouteLine}
+      on:deleteLayer={handleDeleteLayer}
     />
   {:else}
     <button class="primary-button" on:click={createRouteLine}
