@@ -1,7 +1,11 @@
 <script>
   import * as turf from '@turf/turf';
   import { Dropdown } from 'carbon-components-svelte';
-  import { route as routeStore, map as mapStore } from '../stores';
+  import {
+    route as routeStore,
+    map as mapStore,
+    config as configStore,
+  } from '../stores';
   import { navigateRoute } from '../navigate-route';
 
   let route = null;
@@ -14,8 +18,9 @@
   });
   let map;
   mapStore.subscribe(value => (map = value));
-
-  const tempLeadDistance = 125;
+  let routingOptions;
+  let speedOptions;
+  configStore.subscribe(value => ({ routingOptions, speedOptions } = value));
 
   let maneuverRoutes = [];
 
@@ -39,25 +44,36 @@
       const prevStep = allSteps?.[i - 1];
       const step = allSteps[i];
 
-      const { geometry, duration, maneuver } = step;
+      const { distance, geometry, duration, maneuver } = step;
 
       const prevGeom = prevStep?.geometry;
 
       const prevLength = prevGeom && turf.length(prevGeom, options);
       const length = turf.length(geometry, options);
 
-      let slicedDistanceStart;
-      let slicedDistanceEnd = Math.min(tempLeadDistance, length);
+      const prevSpeed = prevStep && prevStep?.distance / prevStep?.duration;
+      const speed = distance / duration;
+
+      const prevLeadDistance =
+        prevSpeed && prevSpeed >= speedOptions?.speed
+          ? speedOptions?.leadDistance
+          : routingOptions?.leadDistance;
+      const leadDistance =
+        speed && speed >= speedOptions?.speed
+          ? speedOptions?.leadDistance
+          : routingOptions?.leadDistance;
 
       let slicedStart = prevGeom;
       let slicedEnd = geometry;
 
-      if (prevLength) {
-        slicedDistanceStart = Math.min(tempLeadDistance, prevLength);
+      let slicedDistanceStart =
+        prevLength && Math.min(prevLeadDistance, prevLength);
+      let slicedDistanceEnd = Math.min(leadDistance, length);
 
+      if (prevLength) {
         slicedStart = turf.lineSliceAlong(
           prevGeom,
-          Math.max(0, prevLength - tempLeadDistance),
+          Math.max(0, prevLength - prevLeadDistance),
           prevLength,
           options
         )?.geometry;
@@ -72,11 +88,11 @@
       }
 
       let slicedDurationStart =
-        (Math.min(tempLeadDistance, prevLength) / prevLength) *
+        (Math.min(prevLeadDistance, prevLength) / prevLength) *
           prevStep?.duration ?? 0;
 
       let slicedDurationEnd =
-        (Math.min(tempLeadDistance, length) / length) * duration;
+        (Math.min(leadDistance, length) / length) * duration;
 
       const stepOne = {
         geometry: slicedStart,
