@@ -49,10 +49,21 @@ export const setPuckLocation = (map, point, bearing) => {
 };
 
 export const setMarkerLayer = (map, point, markerId, layoutProperties) => {
+  const asset = mapAssets[markerId];
   if (!mapAssets[markerId]) {
     console.warn(`${markerId} is not loaded.`);
     return;
   }
+
+  const hasImage = map.hasImage(markerId);
+  if (!hasImage) {
+    const { url } = asset;
+    map.loadImage(url, (error, image) => {
+      if (error) throw error;
+      map.addImage(markerId, image);
+    });
+  }
+
   const hasSource = map.getSource(markerId);
   if (!hasSource) {
     map.addSource(markerId, {
@@ -68,7 +79,6 @@ export const setMarkerLayer = (map, point, markerId, layoutProperties) => {
   }
 
   const hasLayer = map.getLayer(markerId);
-
   if (!hasLayer) {
     map.addLayer({
       id: markerId,
