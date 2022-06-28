@@ -66,6 +66,12 @@
   let fullScreenLoading = { loading: false };
   fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
 
+  let routeFlag = false;
+
+  const setRouteFlag = value => {
+    routeFlag = value;
+  };
+
   $: {
     if (mapState || locations || routeLines || styleUrl) {
       writeHash({ locations, routeLines, styleUrl, deviceSize, ...mapState });
@@ -77,8 +83,8 @@
   <base href="process.env.BASE_PATH" />
 </svelte:head>
 <main>
-  <ControlPanel />
-  <DisplayArea />
+  <ControlPanel {setRouteFlag} {routeFlag} />
+  <DisplayArea {routeFlag} />
   {#if fullScreenLoading.loading}
     <Loader helperText={fullScreenLoading.helperText || null} />
   {/if}
