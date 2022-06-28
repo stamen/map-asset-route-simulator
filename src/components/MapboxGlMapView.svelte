@@ -17,7 +17,6 @@
     waitForStyleUpdate,
     addRouteLine,
     updateRouteLine,
-    createGeojsonSource,
   } from '../mapbox-gl-utils';
   import {
     ROUTE_LINE_LAYER_ID_PREFIX,
@@ -137,9 +136,9 @@
             0,
             ...routeLineLayers
           );
-        const geometries = createGeojsonSource(directionsApiResponse);
+        const { highResGeom } = directionsApiResponse;
         let source = geometries
-          ? { type: 'geojson', data: geometries.highResGeom }
+          ? { type: 'geojson', data: highResGeom }
           : ROUTE_LINE_SOURCE;
         stylesheet.sources[ROUTE_LINE_SOURCE_ID] = source;
         map.setStyle(stylesheet);

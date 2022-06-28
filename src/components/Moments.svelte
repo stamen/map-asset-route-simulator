@@ -11,7 +11,7 @@
   let route = null;
   routeStore.subscribe(value => {
     if (value && value?.response) {
-      route = value?.response?.routes?.[0];
+      route = value?.response;
     } else {
       route = null;
     }
@@ -30,11 +30,7 @@
 
   // Slices up the geometries to just show a maneuver with its lead time
   const setManeuverRoutes = route => {
-    // We might want some kind of getter for this as opposed to doing this everywhere
-    const legs = route.legs.reduce((acc, leg) => acc.concat(leg), []);
-    const allSteps = legs
-      .map(l => l.steps)
-      .reduce((acc, steps) => acc.concat(steps), []);
+    const allSteps = route.steps;
 
     for (let i = 0; i < allSteps.length; i++) {
       const options = { units: 'meters' };
@@ -133,11 +129,17 @@
       []
     );
     const geometry = {
-      ...maneuverRoute?.geometry,
-      coordinates: coords,
+      type: 'FeatureCollection',
+      features: [
+        {
+          geometry: { ...maneuverRoute?.geometry, coordinates: coords },
+        },
+      ],
     };
 
-    const navRoute = { geometry, legs: [{ steps: maneuverRoute.steps }] };
+    console.log(geometry);
+
+    const navRoute = { highResGeom: geometry, steps: maneuverRoute.steps };
 
     navigateRoute(map, navRoute);
   };

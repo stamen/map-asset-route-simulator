@@ -119,44 +119,21 @@ export const addRouteLine = map => {
   }
 };
 
-export const createGeojsonSource = directionsApiResponse => {
-  if (!directionsApiResponse) return;
-  const { routes } = directionsApiResponse;
-  // Ignore alternative routes if there are any
-  const route = routes[0];
-  // TODO: Do we care about the low res geometry?
-  const { geometry: lowResGeom } = route;
-
-  let features = route.legs.reduce((acc, leg) => {
-    const steps = leg.steps.reduce(
-      (acc, step) => acc.concat(step.geometry),
-      []
-    );
-    acc = acc.concat(steps);
-    return acc;
-  }, []);
-
-  features = features.map(f => ({ type: 'Feature', geometry: f }));
-
-  const highResGeom = {
-    type: 'FeatureCollection',
-    features: features,
-  };
-
-  return { highResGeom, lowResGeom };
-};
-
-export const updateRouteLine = (map, directionsApiResponse) => {
-  if (!directionsApiResponse) return;
-  const { highResGeom, lowResGeom } = createGeojsonSource(
-    directionsApiResponse
-  );
+export const updateRouteLine = (map, route) => {
+  if (!route) return;
+  const { highResGeom } = route;
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 
-  const { coordinates } = lowResGeom;
+  const coordinates = highResGeom.features.reduce(
+    (acc, f) => acc.concat(f.geometry.coordinates),
+    []
+  );
 
-  const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
+  const bounds = new mapboxgl.LngLatBounds(
+    coordinates[0],
+    coordinates[coordinates.length - 1]
+  );
 
   for (const coord of coordinates) {
     bounds.extend(coord);

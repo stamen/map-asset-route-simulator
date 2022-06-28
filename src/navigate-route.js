@@ -11,7 +11,7 @@ import {
   removeMarkerLayer,
 } from './mapbox-gl-utils';
 
-let currentRoute;
+let currentSteps;
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
@@ -194,7 +194,7 @@ const easePitchAndZoom = (before, after, distanceToCover, maxDistance) => {
 // Navigates a route step with options passed from the step object
 const navigate = (map, options) => {
   return new Promise(async resolve => {
-    const { route, distance, duration, coordinates, maneuver, nextManeuver } =
+    const { steps, distance, duration, coordinates, maneuver, nextManeuver } =
       options;
 
     // In meters per second
@@ -233,7 +233,7 @@ const navigate = (map, options) => {
 
     function frame(time) {
       // If we call a moment during a route, cancel the step
-      if (JSON.stringify(route) !== JSON.stringify(currentRoute)) {
+      if (JSON.stringify(steps) !== JSON.stringify(currentSteps)) {
         return resolve({ segmentComplete: true });
       }
 
@@ -344,26 +344,24 @@ const navigate = (map, options) => {
 };
 
 // Cycles through all steps in a route to navigate piece by piece with appropriate speed
-const navigateSteps = async (map, route) => {
+const navigateSteps = async (map, steps) => {
   // Possible we want to reconsider using the lowResGeom
-  for (const leg of route.legs) {
-    for (let i = 0; i < leg.steps.length; i++) {
-      const step = leg.steps[i];
-      const { distance, duration, geometry, maneuver } = step;
-      const nextManeuver = leg.steps?.[i + 1]?.maneuver;
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const { distance, duration, geometry, maneuver } = step;
+    const nextManeuver = steps?.[i + 1]?.maneuver;
 
-      // If we call a moment during a route, cancel the route
-      if (JSON.stringify(route) !== JSON.stringify(currentRoute)) return;
+    // If we call a moment during a route, cancel the route
+    if (JSON.stringify(steps) !== JSON.stringify(currentSteps)) return;
 
-      await navigate(map, {
-        route,
-        duration,
-        distance,
-        coordinates: geometry.coordinates,
-        maneuver,
-        nextManeuver,
-      });
-    }
+    await navigate(map, {
+      steps,
+      duration,
+      distance,
+      coordinates: geometry.coordinates,
+      maneuver,
+      nextManeuver,
+    });
   }
 
   // For now remove map assets on move
@@ -380,16 +378,18 @@ const navigateSteps = async (map, route) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
-  currentRoute = route;
+  const { highResGeom, steps } = route;
+  currentSteps = steps;
   return new Promise(res => {
-    const fullCoords = route?.geometry?.coordinates;
+    const fullCoords = highResGeom.features.reduce(
+      (acc, f) => acc.concat(f.geometry.coordinates),
+      []
+    );
     const start = fullCoords[0];
     const end = fullCoords[fullCoords.length - 1];
 
-    const routeSteps = route?.legs?.[0]?.steps;
-    const initialBearing = routeSteps?.[0]?.maneuver?.bearing_after || 0;
-    const includesArrive =
-      routeSteps[routeSteps.length - 1]?.maneuver?.type === 'arrive';
+    const initialBearing = steps?.[0]?.maneuver?.bearing_after || 0;
+    const includesArrive = steps[steps.length - 1]?.maneuver?.type === 'arrive';
 
     // Ease to the start of the route
     map.easeTo({
@@ -416,7 +416,7 @@ const navigateRoute = (map, route) => {
         });
       }
 
-      navigateSteps(map, route).then(e => {
+      navigateSteps(map, steps).then(e => {
         res(e);
       });
     });
