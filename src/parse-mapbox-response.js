@@ -7,14 +7,10 @@ const parseMapboxResponse = apiResponse => {
     return acc;
   }, []);
 
-  let features = steps.map(step => step.geometry);
-  features = features.map(f => ({ type: 'Feature', geometry: f }));
-  const highResGeom = {
-    type: 'FeatureCollection',
-    features: features,
-  };
+  let coordinates = steps.map(step => step.geometry);
+  coordinates = coordinates.reduce((acc, f) => acc.concat(f.coordinates), []);
 
-  return { steps, highResGeom };
+  return { steps, coordinates };
 };
 
 export { parseMapboxResponse };

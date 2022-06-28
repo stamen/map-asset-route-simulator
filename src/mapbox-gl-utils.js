@@ -121,14 +121,17 @@ export const addRouteLine = map => {
 
 export const updateRouteLine = (map, route) => {
   if (!route) return;
-  const { highResGeom } = route;
+  const { coordinates } = route;
+
+  const highResGeom = {
+    type: 'Feature',
+    geometry: {
+      type: 'LineString',
+      coordinates: coordinates,
+    },
+  };
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
-
-  const coordinates = highResGeom.features.reduce(
-    (acc, f) => acc.concat(f.geometry.coordinates),
-    []
-  );
 
   const bounds = new mapboxgl.LngLatBounds(
     coordinates[0],

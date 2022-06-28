@@ -136,7 +136,18 @@
             0,
             ...routeLineLayers
           );
-        const { highResGeom } = directionsApiResponse;
+        const { coordinates } = directionsApiResponse;
+
+        const highResGeom = {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: coordinates,
+          },
+        };
+
+        console.log(highResGeom);
+
         let source = geometries
           ? { type: 'geojson', data: highResGeom }
           : ROUTE_LINE_SOURCE;

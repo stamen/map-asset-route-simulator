@@ -128,18 +128,8 @@
       (acc, step) => acc.concat(step?.geometry?.coordinates || []),
       []
     );
-    const geometry = {
-      type: 'FeatureCollection',
-      features: [
-        {
-          geometry: { ...maneuverRoute?.geometry, coordinates: coords },
-        },
-      ],
-    };
 
-    console.log(geometry);
-
-    const navRoute = { highResGeom: geometry, steps: maneuverRoute.steps };
+    const navRoute = { coordinates: coords, steps: maneuverRoute.steps };
 
     navigateRoute(map, navRoute);
   };

@@ -378,15 +378,11 @@ const navigateSteps = async (map, steps) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
-  const { highResGeom, steps } = route;
+  const { coordinates, steps } = route;
   currentSteps = steps;
   return new Promise(res => {
-    const fullCoords = highResGeom.features.reduce(
-      (acc, f) => acc.concat(f.geometry.coordinates),
-      []
-    );
-    const start = fullCoords[0];
-    const end = fullCoords[fullCoords.length - 1];
+    const start = coordinates[0];
+    const end = coordinates[coordinates.length - 1];
 
     const initialBearing = steps?.[0]?.maneuver?.bearing_after || 0;
     const includesArrive = steps[steps.length - 1]?.maneuver?.type === 'arrive';
