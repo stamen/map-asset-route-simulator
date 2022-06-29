@@ -115,7 +115,9 @@
         map.setStyle(url);
         const callback = () => {
           addRouteLine(map);
-          updateRouteLine(map, directionsApiResponse);
+          updateRouteLine(map, directionsApiResponse, {
+            fitToBounds: false,
+          });
         };
         waitForStyleUpdate(map, callback);
       } else {
@@ -146,8 +148,6 @@
           },
         };
 
-        console.log(highResGeom);
-
         let source = geometries
           ? { type: 'geojson', data: highResGeom }
           : ROUTE_LINE_SOURCE;
@@ -172,7 +172,7 @@
   }
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
-    updateRouteLine(map, directionsApiResponse);
+    updateRouteLine(map, directionsApiResponse, { fitToBounds: true });
   }
 </script>
 

@@ -129,8 +129,13 @@ export const addRouteLine = map => {
   }
 };
 
-export const updateRouteLine = (map, route) => {
+export const updateRouteLine = (
+  map,
+  route,
+  options = { fitToBounds: true }
+) => {
   if (!route) return;
+  const { fitToBounds } = options;
   const { coordinates } = route;
 
   const highResGeom = {
@@ -143,19 +148,21 @@ export const updateRouteLine = (map, route) => {
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 
-  const bounds = new mapboxgl.LngLatBounds(
-    coordinates[0],
-    coordinates[coordinates.length - 1]
-  );
+  if (fitToBounds) {
+    const bounds = new mapboxgl.LngLatBounds(
+      coordinates[0],
+      coordinates[coordinates.length - 1]
+    );
 
-  for (const coord of coordinates) {
-    bounds.extend(coord);
+    for (const coord of coordinates) {
+      bounds.extend(coord);
+    }
+
+    map.setPitch(0);
+    map.fitBounds(bounds, {
+      padding: 20,
+    });
   }
-
-  map.setPitch(0);
-  map.fitBounds(bounds, {
-    padding: 20,
-  });
 };
 
 export const validateLayer = layer => {
