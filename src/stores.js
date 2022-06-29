@@ -32,7 +32,7 @@ const initialMapState = Object.keys(hashObj).reduce((acc, key) => {
 export const mapState = writable(initialMapState);
 
 // Map store
-export const map = writable({});
+export const map = writable(null);
 
 // Map asset store
 export const mapAssets = writable({ puck: null, 'destination-pin': null });

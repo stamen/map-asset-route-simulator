@@ -166,8 +166,7 @@
   };
 
   const cancelRoute = async () => {
-    // From moments PR, make currentRoute into activeRoute in store or something, then use to pause/cancel route
-    console.log('cancelled');
+    await navigateRoute(map, { steps: null });
     setRouteFlag(false);
   };
 </script>
