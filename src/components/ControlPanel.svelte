@@ -4,29 +4,9 @@
   import Moments from './Moments.svelte';
   import RouteLines from './RouteLines.svelte';
   import CameraBehaviorModal from './CameraBehaviorModal.svelte';
-  import { removeMarkerLayer } from '../mapbox-gl-utils';
-  import { map as mapStore } from '../stores';
-  import { PUCK, DESTINATION_PIN } from '../constants';
 
   export let routeFlag;
   export let setRouteFlag;
-
-  let map;
-  mapStore.subscribe(value => (map = value));
-
-  $: {
-    if (map && !routeFlag) {
-      // For now remove map assets on move
-      map.once('move', () => {
-        if (map.getLayer(DESTINATION_PIN)) {
-          removeMarkerLayer(map, DESTINATION_PIN);
-        }
-        if (map.getLayer(PUCK)) {
-          removeMarkerLayer(map, PUCK);
-        }
-      });
-    }
-  }
 </script>
 
 <div class="panel">
