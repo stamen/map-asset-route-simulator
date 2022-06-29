@@ -380,6 +380,7 @@ const navigateSteps = async (map, steps) => {
 const navigateRoute = (map, route) => {
   const { coordinates, steps } = route;
   currentSteps = steps;
+
   return new Promise(res => {
     const start = coordinates[0];
     const end = coordinates[coordinates.length - 1];

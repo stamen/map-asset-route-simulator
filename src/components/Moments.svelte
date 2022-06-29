@@ -128,7 +128,6 @@
       (acc, step) => acc.concat(step?.geometry?.coordinates || []),
       []
     );
-
     const navRoute = { coordinates: coords, steps: maneuverRoute.steps };
 
     navigateRoute(map, navRoute);
