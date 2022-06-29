@@ -10,10 +10,16 @@
     mapStyle as mapStyleStore,
     fullScreenLoading as fullScreenLoadingStore,
     deviceSize as deviceSizeStore,
+    map as mapStore,
   } from './stores';
   import { makeConfig } from './make-config';
   import { writeHash } from './query';
-  import { DEFAULT_ROUTELINE_PROPERTIES } from './constants';
+  import {
+    DEFAULT_ROUTELINE_PROPERTIES,
+    PUCK,
+    DESTINATION_PIN,
+  } from './constants';
+  import { removeMarkerLayer } from './mapbox-gl-utils';
 
   export let localConfig;
   const config = makeConfig(localConfig);
@@ -64,21 +70,41 @@
   });
 
   let fullScreenLoading = { loading: false };
-  // fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
+  fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
 
   $: {
     if (mapState || locations || routeLines || styleUrl) {
       writeHash({ locations, routeLines, styleUrl, deviceSize, ...mapState });
     }
   }
+
+  let map;
+  mapStore.subscribe(value => (map = value));
+
+  let routeFlag = false;
+
+  const setRouteFlag = value => {
+    routeFlag = value;
+    if (map && !routeFlag) {
+      // For now remove map assets on move
+      map.once('move', () => {
+        if (map.getLayer(DESTINATION_PIN)) {
+          removeMarkerLayer(map, DESTINATION_PIN);
+        }
+        if (map.getLayer(PUCK)) {
+          removeMarkerLayer(map, PUCK);
+        }
+      });
+    }
+  };
 </script>
 
 <svelte:head>
   <base href="process.env.BASE_PATH" />
 </svelte:head>
 <main>
-  <ControlPanel />
-  <DisplayArea />
+  <ControlPanel {setRouteFlag} {routeFlag} />
+  <DisplayArea {routeFlag} />
   {#if fullScreenLoading.loading}
     <Loader helperText={fullScreenLoading.helperText || null} />
   {/if}

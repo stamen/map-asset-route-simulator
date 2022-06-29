@@ -14,12 +14,13 @@
   import { navigateRoute } from '../navigate-route';
   import { DEFAULT_GEOCODERS, ROUTE_LINE_SOURCE_ID } from '../constants';
 
+  export let routeFlag;
+  export let setRouteFlag;
+
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
 
   let disableSubmit = false;
-
-  let routeFlag = false;
 
   let geocoders = DEFAULT_GEOCODERS;
 
@@ -159,9 +160,14 @@
   };
 
   const runRoute = async () => {
-    routeFlag = true;
+    setRouteFlag(true);
     await navigateRoute(map, route);
-    routeFlag = false;
+    setRouteFlag(false);
+  };
+
+  const cancelRoute = async () => {
+    await navigateRoute(map, { steps: null });
+    setRouteFlag(false);
   };
 </script>
 
@@ -205,8 +211,9 @@
   >
   <button
     class="primary-button button-margin"
-    disabled={routeFlag || !route}
-    on:click={runRoute}>Run route</button
+    disabled={!route}
+    on:click={routeFlag ? cancelRoute : runRoute}
+    >{routeFlag ? 'Cancel route' : 'Run route'}</button
   >
 </div>
 

@@ -1,15 +1,7 @@
 import * as turf from '@turf/turf';
-import {
-  config as configStore,
-  map,
-  mapAssets as mapAssetsStore,
-} from './stores';
+import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
-import {
-  setPuckLocation,
-  setMarkerLayer,
-  removeMarkerLayer,
-} from './mapbox-gl-utils';
+import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
 
 let currentSteps;
 
@@ -364,15 +356,6 @@ const navigateSteps = async (map, steps) => {
     });
   }
 
-  // For now remove map assets on move
-  map.once('move', () => {
-    if (map.getLayer(DESTINATION_PIN)) {
-      removeMarkerLayer(map, DESTINATION_PIN);
-    }
-    if (map.getLayer(PUCK)) {
-      removeMarkerLayer(map, PUCK);
-    }
-  });
   return { routeComplete: true };
 };
 
@@ -380,6 +363,8 @@ const navigateSteps = async (map, steps) => {
 const navigateRoute = (map, route) => {
   const { coordinates, steps } = route;
   currentSteps = steps;
+
+  if (!steps) return;
 
   return new Promise(res => {
     const start = coordinates[0];

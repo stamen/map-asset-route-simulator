@@ -4,12 +4,15 @@
   import Moments from './Moments.svelte';
   import RouteLines from './RouteLines.svelte';
   import CameraBehaviorModal from './CameraBehaviorModal.svelte';
+
+  export let routeFlag;
+  export let setRouteFlag;
 </script>
 
 <div class="panel">
   <Accordion>
     <AccordionItem title="Route:" open>
-      <div class="control"><Directions /></div>
+      <div class="control"><Directions {setRouteFlag} {routeFlag} /></div>
       <div class="control mt24"><Moments /></div>
     </AccordionItem>
     <AccordionItem title="Route-line:" open>

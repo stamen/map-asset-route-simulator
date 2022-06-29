@@ -49,10 +49,21 @@ export const setPuckLocation = (map, point, bearing) => {
 };
 
 export const setMarkerLayer = (map, point, markerId, layoutProperties) => {
+  const asset = mapAssets[markerId];
   if (!mapAssets[markerId]) {
     console.warn(`${markerId} is not loaded.`);
     return;
   }
+
+  const hasImage = map.hasImage(markerId);
+  if (!hasImage) {
+    const { url } = asset;
+    map.loadImage(url, (error, image) => {
+      if (error) throw error;
+      map.addImage(markerId, image);
+    });
+  }
+
   const hasSource = map.getSource(markerId);
   if (!hasSource) {
     map.addSource(markerId, {
@@ -68,7 +79,6 @@ export const setMarkerLayer = (map, point, markerId, layoutProperties) => {
   }
 
   const hasLayer = map.getLayer(markerId);
-
   if (!hasLayer) {
     map.addLayer({
       id: markerId,
@@ -119,8 +129,13 @@ export const addRouteLine = map => {
   }
 };
 
-export const updateRouteLine = (map, route) => {
+export const updateRouteLine = (
+  map,
+  route,
+  options = { fitToBounds: true }
+) => {
   if (!route) return;
+  const { fitToBounds } = options;
   const { coordinates } = route;
 
   const highResGeom = {
@@ -133,19 +148,21 @@ export const updateRouteLine = (map, route) => {
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 
-  const bounds = new mapboxgl.LngLatBounds(
-    coordinates[0],
-    coordinates[coordinates.length - 1]
-  );
+  if (fitToBounds) {
+    const bounds = new mapboxgl.LngLatBounds(
+      coordinates[0],
+      coordinates[coordinates.length - 1]
+    );
 
-  for (const coord of coordinates) {
-    bounds.extend(coord);
+    for (const coord of coordinates) {
+      bounds.extend(coord);
+    }
+
+    map.setPitch(0);
+    map.fitBounds(bounds, {
+      padding: 20,
+    });
   }
-
-  map.setPitch(0);
-  map.fitBounds(bounds, {
-    padding: 20,
-  });
 };
 
 export const validateLayer = layer => {

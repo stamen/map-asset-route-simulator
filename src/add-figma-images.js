@@ -55,7 +55,7 @@ const addFigmaImages = async map => {
           if (error) reject(error);
 
           map.addImage(name, image);
-          resolve({ name, width: image.width, height: image.height });
+          resolve({ name, url, width: image.width, height: image.height });
         });
       });
     })

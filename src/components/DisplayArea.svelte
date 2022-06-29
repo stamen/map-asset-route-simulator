@@ -9,6 +9,8 @@
   import MapboxGlMapView from './MapboxGlMapView.svelte';
   import { fetchStyle } from '../fetch-style';
 
+  export let routeFlag;
+
   const INITIAL_DEVICE_INDEX = 0;
   const INITIAL_STYLE_INDEX = 0;
 
@@ -168,6 +170,7 @@
         titleText="Devices"
         selectedId={selectedDevice}
         items={deviceDropdownItems}
+        disabled={routeFlag}
         on:select={handleSetDeviceSize}
       />
     </div>
@@ -201,6 +204,7 @@
         titleText="Map styles"
         selectedId={selected}
         items={styleDropdownItems}
+        disabled={routeFlag}
         on:select={handleSetStyle}
       />
     </div>
@@ -209,6 +213,7 @@
         <div style={`width:${width - 60}px; max-width:360px`}>
           <TextInput
             placeholder="Enter map style url..."
+            disabled={routeFlag}
             on:input={e => (textInput = e.detail)}
             value={textInput}
             on:focus={() => (error = '')}
