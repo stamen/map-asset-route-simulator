@@ -11,6 +11,8 @@ import {
   removeMarkerLayer,
 } from './mapbox-gl-utils';
 
+let currentSteps;
+
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
@@ -192,7 +194,8 @@ const easePitchAndZoom = (before, after, distanceToCover, maxDistance) => {
 // Navigates a route step with options passed from the step object
 const navigate = (map, options) => {
   return new Promise(async resolve => {
-    const { distance, duration, coordinates, maneuver, nextManeuver } = options;
+    const { steps, distance, duration, coordinates, maneuver, nextManeuver } =
+      options;
 
     // In meters per second
     const speed = distance / duration;
@@ -229,6 +232,11 @@ const navigate = (map, options) => {
     let start;
 
     function frame(time) {
+      // If we call a moment during a route, cancel the step
+      if (JSON.stringify(steps) !== JSON.stringify(currentSteps)) {
+        return resolve({ segmentComplete: true });
+      }
+
       if (!start) start = time;
       // phase determines how far through the animation we are
       const phase = (time - start) / animationDuration;
@@ -269,7 +277,7 @@ const navigate = (map, options) => {
         if (!easeInPitch) easeInPitch = map.getPitch();
         if (!easeInZoom) easeInZoom = map.getZoom();
 
-        const maneuverBehavior = maneuverOptions?.[nextManeuver.type];
+        const maneuverBehavior = maneuverOptions?.[nextManeuver?.type];
 
         const easedPosition = easePitchAndZoom(
           {
@@ -336,22 +344,24 @@ const navigate = (map, options) => {
 };
 
 // Cycles through all steps in a route to navigate piece by piece with appropriate speed
-const navigateSteps = async (map, route) => {
+const navigateSteps = async (map, steps) => {
   // Possible we want to reconsider using the lowResGeom
-  for (const leg of route.legs) {
-    for (let i = 0; i < leg.steps.length; i++) {
-      const step = leg.steps[i];
-      const { distance, duration, geometry, maneuver } = step;
-      const nextManeuver = leg.steps?.[i + 1]?.maneuver;
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const { distance, duration, geometry, maneuver } = step;
+    const nextManeuver = steps?.[i + 1]?.maneuver;
 
-      await navigate(map, {
-        duration,
-        distance,
-        coordinates: geometry.coordinates,
-        maneuver,
-        nextManeuver,
-      });
-    }
+    // If we call a moment during a route, cancel the route
+    if (JSON.stringify(steps) !== JSON.stringify(currentSteps)) return;
+
+    await navigate(map, {
+      steps,
+      duration,
+      distance,
+      coordinates: geometry.coordinates,
+      maneuver,
+      nextManeuver,
+    });
   }
 
   // For now remove map assets on move
@@ -368,13 +378,15 @@ const navigateSteps = async (map, route) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
-  return new Promise(res => {
-    const fullCoords = route?.geometry?.coordinates;
-    const start = fullCoords[0];
-    const end = fullCoords[fullCoords.length - 1];
+  const { coordinates, steps } = route;
+  currentSteps = steps;
 
-    const initialBearing =
-      route?.legs?.[0]?.steps?.[0]?.maneuver?.bearing_after || 0;
+  return new Promise(res => {
+    const start = coordinates[0];
+    const end = coordinates[coordinates.length - 1];
+
+    const initialBearing = steps?.[0]?.maneuver?.bearing_after || 0;
+    const includesArrive = steps[steps.length - 1]?.maneuver?.type === 'arrive';
 
     // Ease to the start of the route
     map.easeTo({
@@ -388,7 +400,7 @@ const navigateRoute = (map, route) => {
     });
 
     map.once('moveend', () => {
-      if (mapAssets[DESTINATION_PIN]) {
+      if (mapAssets[DESTINATION_PIN] && includesArrive) {
         setMarkerLayer(map, end, DESTINATION_PIN, {
           'icon-pitch-alignment': 'viewport',
           'icon-offset': [0, mapAssets[DESTINATION_PIN].height * -0.5],
@@ -401,7 +413,7 @@ const navigateRoute = (map, route) => {
         });
       }
 
-      navigateSteps(map, route).then(e => {
+      navigateSteps(map, steps).then(e => {
         res(e);
       });
     });

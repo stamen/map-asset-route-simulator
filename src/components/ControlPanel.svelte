@@ -1,6 +1,7 @@
 <script>
   import { Accordion, AccordionItem } from 'carbon-components-svelte';
   import Directions from './Directions.svelte';
+  import Moments from './Moments.svelte';
   import RouteLines from './RouteLines.svelte';
   import CameraBehaviorModal from './CameraBehaviorModal.svelte';
 
@@ -12,6 +13,7 @@
   <Accordion>
     <AccordionItem title="Route:" open>
       <div class="control"><Directions {setRouteFlag} {routeFlag} /></div>
+      <div class="control mt24"><Moments /></div>
     </AccordionItem>
     <AccordionItem title="Route-line:" open>
       <div class="control"><RouteLines /></div>
@@ -38,5 +40,9 @@
     display: flex;
     justify-content: center;
     width: 330px;
+  }
+
+  .mt24 {
+    margin-top: 24px;
   }
 </style>

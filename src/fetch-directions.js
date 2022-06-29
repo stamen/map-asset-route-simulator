@@ -1,4 +1,6 @@
 import { config as configStore } from './stores';
+import { parseMapboxResponse } from './parse-mapbox-response';
+
 let mapboxGlAccessToken;
 configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
 
@@ -23,7 +25,8 @@ const fetchDirections = async (...locations) => {
   } catch (e) {
     console.error(e);
   }
-  return data;
+
+  return parseMapboxResponse(data);
 };
 
 export { fetchDirections };

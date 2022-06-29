@@ -52,7 +52,7 @@
     const response = await fetchDirections(...centers);
     // TODO handle bad response
     if (response) {
-      route = response?.routes?.[0];
+      route = response;
       routeStore.set({
         locations: geocoders,
         response,
