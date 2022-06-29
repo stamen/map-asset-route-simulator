@@ -11,6 +11,8 @@ import {
   removeMarkerLayer,
 } from './mapbox-gl-utils';
 
+let currentRoute;
+
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
@@ -192,7 +194,8 @@ const easePitchAndZoom = (before, after, distanceToCover, maxDistance) => {
 // Navigates a route step with options passed from the step object
 const navigate = (map, options) => {
   return new Promise(async resolve => {
-    const { distance, duration, coordinates, maneuver, nextManeuver } = options;
+    const { route, distance, duration, coordinates, maneuver, nextManeuver } =
+      options;
 
     // In meters per second
     const speed = distance / duration;
@@ -229,6 +232,11 @@ const navigate = (map, options) => {
     let start;
 
     function frame(time) {
+      // If we call a moment during a route, cancel the step
+      if (JSON.stringify(route) !== JSON.stringify(currentRoute)) {
+        return resolve({ segmentComplete: true });
+      }
+
       if (!start) start = time;
       // phase determines how far through the animation we are
       const phase = (time - start) / animationDuration;
@@ -269,7 +277,7 @@ const navigate = (map, options) => {
         if (!easeInPitch) easeInPitch = map.getPitch();
         if (!easeInZoom) easeInZoom = map.getZoom();
 
-        const maneuverBehavior = maneuverOptions?.[nextManeuver.type];
+        const maneuverBehavior = maneuverOptions?.[nextManeuver?.type];
 
         const easedPosition = easePitchAndZoom(
           {
@@ -344,7 +352,11 @@ const navigateSteps = async (map, route) => {
       const { distance, duration, geometry, maneuver } = step;
       const nextManeuver = leg.steps?.[i + 1]?.maneuver;
 
+      // If we call a moment during a route, cancel the route
+      if (JSON.stringify(route) !== JSON.stringify(currentRoute)) return;
+
       await navigate(map, {
+        route,
         duration,
         distance,
         coordinates: geometry.coordinates,
@@ -368,13 +380,16 @@ const navigateSteps = async (map, route) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = (map, route) => {
+  currentRoute = route;
   return new Promise(res => {
     const fullCoords = route?.geometry?.coordinates;
     const start = fullCoords[0];
     const end = fullCoords[fullCoords.length - 1];
 
-    const initialBearing =
-      route?.legs?.[0]?.steps?.[0]?.maneuver?.bearing_after || 0;
+    const routeSteps = route?.legs?.[0]?.steps;
+    const initialBearing = routeSteps?.[0]?.maneuver?.bearing_after || 0;
+    const includesArrive =
+      routeSteps[routeSteps.length - 1]?.maneuver?.type === 'arrive';
 
     // Ease to the start of the route
     map.easeTo({
@@ -388,7 +403,7 @@ const navigateRoute = (map, route) => {
     });
 
     map.once('moveend', () => {
-      if (mapAssets[DESTINATION_PIN]) {
+      if (mapAssets[DESTINATION_PIN] && includesArrive) {
         setMarkerLayer(map, end, DESTINATION_PIN, {
           'icon-pitch-alignment': 'viewport',
           'icon-offset': [0, mapAssets[DESTINATION_PIN].height * -0.5],
