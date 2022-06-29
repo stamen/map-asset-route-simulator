@@ -164,6 +164,12 @@
     await navigateRoute(map, route);
     setRouteFlag(false);
   };
+
+  const cancelRoute = async () => {
+    // From moments PR, make currentRoute into activeRoute in store or something, then use to pause/cancel route
+    console.log('cancelled');
+    setRouteFlag(false);
+  };
 </script>
 
 <div class="directions">
@@ -206,8 +212,9 @@
   >
   <button
     class="primary-button button-margin"
-    disabled={routeFlag || !route}
-    on:click={runRoute}>Run route</button
+    disabled={!route}
+    on:click={routeFlag ? cancelRoute : runRoute}
+    >{routeFlag ? 'Cancel route' : 'Run route'}</button
   >
 </div>
 
