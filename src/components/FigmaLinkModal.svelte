@@ -64,14 +64,21 @@
   };
 
   const addDefaultImages = async () => {
+    const basePath = 'process.env.BASE_PATH';
     const icons = [
-      { name: 'puck', path: '/assets/puck.png' },
-      { name: 'destination-pint', path: '/assets/destination-pin.png' },
+      { name: 'puck', path: `${basePath}assets/puck.png` },
+      {
+        name: 'destination-pin',
+        path: `${basePath}assets/destination-pin.png`,
+      },
     ];
     for (const icon of icons) {
       await removeImage(icon.name);
       map.loadImage(icon.path, (error, image) => {
-        if (error) reject(error);
+        if (error) {
+          console.error(error);
+          return;
+        }
 
         map.addImage(icon.name, image);
         mapAssetsStore.update(store => {
