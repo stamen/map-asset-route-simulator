@@ -16,7 +16,7 @@
   let map;
   mapStore.subscribe(value => (map = value));
 
-  let open = true;
+  let open = false;
   let useDefaultAssets = false;
 
   let fileKey = figmaLink?.fileKey ?? null;
