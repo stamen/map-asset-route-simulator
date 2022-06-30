@@ -61,6 +61,7 @@ const mapboxGlAccessToken = 'pk.123abc';
 
 // Standard routing options along the route
 // const routingOptions = {
+//   leadDistance: 125,
 //   pitch: 60,
 //   zoom: 16
 // };
@@ -68,7 +69,6 @@ const mapboxGlAccessToken = 'pk.123abc';
 // See https://docs.mapbox.com/api/navigation/directions/#maneuver-types for types
 // Options for easing into a maneuver with a different camera position
 // const maneuverOptions = {
-//   leadDistance: 125,
 //   turn: {
 //     pitch: 45,
 //     zoom: 18,
@@ -81,6 +81,7 @@ const mapboxGlAccessToken = 'pk.123abc';
 // Options for changing our routing options based on a target speed
 // Can only use one speed here for now
 // const speedOptions = {
+//   leadDistance: 225,
 //   // meters per second
 //   speed: 15,
 //   zoom: 15,

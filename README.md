@@ -41,8 +41,8 @@ Here, you can customize the following options:
   - `destination-pin`: The name of the frame containing an icon called "destination-pin"
   - `puck`: The name of the frame containing an icon called "puck"
 - `durationMultiplier`: A multiplier for the duration of the route in miliseconds. Real time would be 1000 (which feels very slow in simulation)
-  - `leadDistance`: The distance in meters to begin easing into a maneuver's zoom and pitch options
 - `routingOptions`: Primary zoom and pitch for the route. Can use the following keys:
+  - `leadDistance`: The distance in meters to begin easing into a maneuver's zoom and pitch options
   - `pitch`: The pitch of the map
   - `zoom`: The zoom of the map
 - `speedOptions`: Alternative zoom and pitch for the route for crossing above a speed threshold. Can use the following keys:
