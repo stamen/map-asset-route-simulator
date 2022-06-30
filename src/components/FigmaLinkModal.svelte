@@ -65,7 +65,6 @@
 
   const addDefaultImages = async () => {
     const basePath = 'process.env.BASE_PATH';
-    console.log(basePath);
     const icons = [
       { name: 'puck', path: `${basePath}assets/puck.png` },
       {
