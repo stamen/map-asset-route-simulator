@@ -43,7 +43,14 @@ const addFigmaImages = async map => {
   }
 
   const addImagePromises = Promise.all(
-    MAP_ASSET_ICONS.map(name => {
+    MAP_ASSET_ICONS.filter(id => {
+      if (!!iconsObj[id]) {
+        return true;
+      } else {
+        console.warn(`${id} was not found in your Figma file.`);
+        return false;
+      }
+    }).map(name => {
       return new Promise((resolve, reject) => {
         const v = iconsObj[name];
         if (!v) return;

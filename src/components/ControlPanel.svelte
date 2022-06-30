@@ -4,6 +4,7 @@
   import Moments from './Moments.svelte';
   import RouteLines from './RouteLines.svelte';
   import CameraBehaviorModal from './CameraBehaviorModal.svelte';
+  import FigmaLinkModal from './FigmaLinkModal.svelte';
 
   export let routeFlag;
   export let setRouteFlag;
@@ -21,6 +22,9 @@
     <AccordionItem title="Camera behavior:" open>
       <div class="control"><CameraBehaviorModal /></div>
     </AccordionItem>
+    <AccordionItem title="Map assets:" open
+      ><div class="control"><FigmaLinkModal /></div></AccordionItem
+    >
   </Accordion>
 </div>
 
@@ -34,6 +38,7 @@
     border-right: 1px solid #666;
     align-items: center;
     padding-bottom: 24px;
+    overflow: scroll;
   }
 
   .control {

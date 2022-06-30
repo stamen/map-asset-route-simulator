@@ -18,7 +18,7 @@
     background-color: lightgray;
     opacity: 50%;
     position: fixed;
-    z-index: 1000;
+    z-index: 10000;
   }
 
   .container {
