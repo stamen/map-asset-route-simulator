@@ -8,6 +8,9 @@
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
 
+  export let routeFlag;
+  export let setRouteFlag;
+
   let route = null;
   routeStore.subscribe(value => {
     if (value && value?.response) {
@@ -122,7 +125,7 @@
     }
   }
 
-  const navigate = maneuverRoute => {
+  const navigate = async maneuverRoute => {
     const maneuverRouteSteps = maneuverRoute?.steps || [];
     const coords = maneuverRouteSteps.reduce(
       (acc, step) => acc.concat(step?.geometry?.coordinates || []),
@@ -130,7 +133,9 @@
     );
     const navRoute = { coordinates: coords, steps: maneuverRoute.steps };
 
-    navigateRoute(map, navRoute);
+    setRouteFlag(true);
+    await navigateRoute(map, navRoute);
+    setRouteFlag(false);
   };
 
   $: {

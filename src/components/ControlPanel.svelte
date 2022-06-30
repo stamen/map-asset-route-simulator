@@ -14,7 +14,7 @@
   <Accordion>
     <AccordionItem title="Route:" open>
       <div class="control"><Directions {setRouteFlag} {routeFlag} /></div>
-      <div class="control mt24"><Moments /></div>
+      <div class="control mt24"><Moments {setRouteFlag} {routeFlag} /></div>
     </AccordionItem>
     <AccordionItem title="Route-line:" open>
       <div class="control"><RouteLines /></div>
