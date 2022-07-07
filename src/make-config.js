@@ -61,6 +61,11 @@ const makeConfig = localConfig => {
   const nextLocalConfig = JSON.parse(JSON.stringify(localConfig));
   nextLocalConfig?.routingOptions && delete nextLocalConfig.routingOptions;
 
+  // TODO: This isn't great 🤢
+  if (localConfig.routingRequest) {
+    nextLocalConfig.routingRequest = eval(localConfig.routingRequest);
+  }
+
   const config = {
     devices: defaultDevices,
     styles: defaultStyles,

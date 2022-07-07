@@ -18,7 +18,11 @@
   export let setRouteFlag;
 
   let mapboxGlAccessToken;
-  configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
+  let routingRequest;
+  let routingTransform;
+  configStore.subscribe(
+    value => ({ mapboxGlAccessToken, routingRequest, routingTransform } = value)
+  );
 
   let disableSubmit = false;
 
@@ -49,7 +53,13 @@
     const centers = geocoders
       .map(g => (g.center ? g.center : removeStop(g.id)))
       .filter(Boolean);
-    const response = await fetchDirections(...centers);
+
+    const response = routingRequest
+      ? await routingRequest(...centers)
+      : await fetchDirections(...centers);
+
+    console.log(response);
+
     // TODO handle bad response
     if (response) {
       route = response;
