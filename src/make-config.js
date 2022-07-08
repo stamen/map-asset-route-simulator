@@ -62,9 +62,12 @@ const makeConfig = localConfig => {
   nextLocalConfig?.routingOptions && delete nextLocalConfig.routingOptions;
 
   // We need to do reassign functions since stringifying a JSON with a function value removes the key/value pair
-  const { routingRequest, routingTransform } = localConfig;
-  if (localConfig.routingRequest) {
-    nextLocalConfig = { ...nextLocalConfig, routingRequest, routingTransform };
+  const { directionsApiCall } = localConfig;
+  if (localConfig.directionsApiCall) {
+    nextLocalConfig = {
+      ...nextLocalConfig,
+      directionsApiCall,
+    };
   }
 
   const config = {

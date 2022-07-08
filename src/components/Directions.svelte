@@ -18,10 +18,9 @@
   export let setRouteFlag;
 
   let mapboxGlAccessToken;
-  let routingRequest;
-  let routingTransform;
+  let directionsApiCall;
   configStore.subscribe(
-    value => ({ mapboxGlAccessToken, routingRequest, routingTransform } = value)
+    value => ({ mapboxGlAccessToken, directionsApiCall } = value)
   );
 
   let disableSubmit = false;
@@ -54,8 +53,8 @@
       .map(g => (g.center ? g.center : removeStop(g.id)))
       .filter(Boolean);
 
-    const response = routingRequest
-      ? await routingRequest(...centers)
+    const response = directionsApiCall
+      ? await directionsApiCall(...centers)
       : await fetchDirections(...centers);
 
     console.log(response);
