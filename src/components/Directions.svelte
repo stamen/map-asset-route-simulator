@@ -18,7 +18,10 @@
   export let setRouteFlag;
 
   let mapboxGlAccessToken;
-  configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
+  let directionsApiCall;
+  configStore.subscribe(
+    value => ({ mapboxGlAccessToken, directionsApiCall } = value)
+  );
 
   let disableSubmit = false;
 
@@ -49,7 +52,11 @@
     const centers = geocoders
       .map(g => (g.center ? g.center : removeStop(g.id)))
       .filter(Boolean);
-    const response = await fetchDirections(...centers);
+
+    const response = directionsApiCall
+      ? await directionsApiCall(...centers)
+      : await fetchDirections(...centers);
+
     // TODO handle bad response
     if (response) {
       route = response;
