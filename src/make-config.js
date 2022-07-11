@@ -58,8 +58,16 @@ const makeConfig = localConfig => {
     ...(localConfig?.routingOptions || {}),
   };
 
-  const nextLocalConfig = JSON.parse(JSON.stringify(localConfig));
+  let nextLocalConfig = JSON.parse(JSON.stringify(localConfig));
   nextLocalConfig?.routingOptions && delete nextLocalConfig.routingOptions;
+
+  // We need to do reassign functions since stringifying a JSON with a function value removes the key/value pair
+  if (localConfig.directionsApiCall) {
+    nextLocalConfig = {
+      ...nextLocalConfig,
+      directionsApiCall: localConfig.directionsApiCall,
+    };
+  }
 
   const config = {
     devices: defaultDevices,
