@@ -3,7 +3,14 @@ const round = (n, digits) => {
 };
 
 // Keys that should be encoded/decoded as arrays
-const jsonKeys = ['locations', 'routeLines', 'deviceSize'];
+const jsonKeys = [
+  'locations',
+  'routeLines',
+  'deviceSize',
+  'routingOptions',
+  'speedOptions',
+  'maneuverOptions',
+];
 
 // Keys that should be encoded/decoded as boolean values
 const booleanKeys = [];

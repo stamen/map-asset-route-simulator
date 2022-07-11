@@ -13,21 +13,20 @@
   let speedOptions;
   // Optional
   let maneuverOptions;
-  configStore.subscribe(
-    value =>
-      ({ durationMultiplier, routingOptions, maneuverOptions, speedOptions } =
-        value)
-  );
+  configStore.subscribe(value => {
+    if (value.durationMultiplier) durationMultiplier = value.durationMultiplier;
+    if (value.routingOptions) routingOptions = value.routingOptions;
+    if (value.speedOptions) speedOptions = value.speedOptions;
+    if (value.maneuverOptions) maneuverOptions = value.maneuverOptions;
+  });
 
   let open = false;
 
   let speedOptionsToggle = speedOptions !== undefined;
 
   const defaultSpeedOptions = {
-    threshold: 0,
-    leadDistance: 100,
-    zoom: routingOptions.zoom,
-    pitch: routingOptions.pitch,
+    speed: 17,
+    ...routingOptions,
   };
 
   const setRoutingOptions = ({ property, value }) => {
