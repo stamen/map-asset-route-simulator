@@ -57,8 +57,6 @@
       ? await directionsApiCall(...centers)
       : await fetchDirections(...centers);
 
-    console.log(response);
-
     // TODO handle bad response
     if (response) {
       route = response;
