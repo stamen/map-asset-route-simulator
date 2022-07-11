@@ -54,6 +54,7 @@ Here, you can customize the following options:
   - `[name of maneuver type]`: (See https://docs.mapbox.com/api/navigation/directions/#maneuver-types) Key is name of the type of maneuver to trigger easing into the options. Value is an object with the following keys:
     - `pitch`: The pitch of the map
     - `zoom`: The zoom of the map
+- `directionsApiCall`: An async function that calls a routing/directions API with an argument of lng/lat points. The app will call the Mapbox Directions API by default using your Mapbox token, but you may instead use a preferred API. Your function **must** return the specified format for the API response (see section in README).
 
 For more details on how these should look, see the example in [`src/config/local.example.js`](./src/config/local.example.js).
 
@@ -113,4 +114,29 @@ root/
       - bundle.css
     - index.html
     - local.js
+```
+
+## Directions API response
+
+If you are using the default Mapbox Directions API response in the app, then you don't need to be concerned with this section.
+
+If you choose to use a custom routing API, you need to make sure your function returns data as an object in the following format:
+
+```ts
+{
+  coordinates: Array<[number, number]>, // Array of lat/lng points for the entire route as array values
+  steps: [ // Array of "step" objects representing the route
+    {
+      distance: number // Number of meters for segment
+      duration: number, // Estimated duration of driving segment in seconds
+      geometry: GeoJson, // LineString geojson of the segment of the route
+      maneuver: {
+        bearing_before: number, // Bearing before entering a maneuver
+        bearing_after: number, // Bearing after exiting a maneuver
+        location: [number, number], // Lat/lng pair for the location of the maneuver
+        type: string, // One of these valid maneuver types https://docs.mapbox.com/api/navigation/directions/#maneuver-types
+      }
+    }
+  ]
+}
 ```
