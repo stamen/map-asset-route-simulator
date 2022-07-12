@@ -36,7 +36,7 @@
     "figmasset": "^0.1.6",
     "gh-pages": "^4.0.0",
     "lodash.throttle": "^4.1.1",
-    "mapbox-gl": "^2.8.2",
+    "mapbox-gl": "^2.9.1",
     "sirv-cli": "^1.0.0",
     "svelte-fa": "^2.4.0",
     "svelte-loading-spinners": "^0.1.7"

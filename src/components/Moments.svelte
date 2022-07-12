@@ -7,6 +7,7 @@
     config as configStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
+  import { recordScreen } from '../record-screen';
 
   export let routeFlag;
   export let setRouteFlag;
@@ -150,9 +151,17 @@
     selectedId = value;
   };
 
-  const runManeuverRoute = () => {
+  const runManeuverRoute = async () => {
     const maneuverRoute = maneuverRoutes.find(item => item.id === selectedId);
-    navigate(maneuverRoute);
+    await navigate(maneuverRoute);
+  };
+
+  const startNavigation = async () => {
+    // console.log('hello');
+    // await runManeuverRoute();
+    // console.log('bye');
+    recordScreen(map, runManeuverRoute);
+    // recordScreen();
   };
 </script>
 
@@ -168,7 +177,7 @@
   <button
     class="primary-button"
     disabled={!selectedId || !maneuverRoutes.length}
-    on:click={runManeuverRoute}>Submit</button
+    on:click={startNavigation}>Submit</button
   >
 </div>
 

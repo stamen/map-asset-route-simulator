@@ -2,7 +2,6 @@ import * as turf from '@turf/turf';
 import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
-import { recordScreen } from './record-screen';
 
 let currentSteps;
 
@@ -361,15 +360,11 @@ const navigateSteps = async (map, steps) => {
 };
 
 // Eases to the start of a route, then begins routing
-const navigateRoute = (map, route) => {
+const navigateRoute = async (map, route) => {
   const { coordinates, steps } = route;
   currentSteps = steps;
 
   if (!steps) return;
-
-  const { startRecording, stopRecording, download } = recordScreen();
-
-  startRecording();
 
   return new Promise(res => {
     const start = coordinates[0];
@@ -404,8 +399,6 @@ const navigateRoute = (map, route) => {
       }
 
       navigateSteps(map, steps).then(e => {
-        stopRecording();
-        download();
         res(e);
       });
     });

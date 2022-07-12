@@ -1,78 +1,146 @@
-'use strict';
+import mapboxgl from 'mapbox-gl';
+import loadEncoder from 'https://unpkg.com/mp4-h264@1.0.7/build/mp4-encoder.js';
+import { simd } from 'https://unpkg.com/wasm-feature-detect?module';
 
-export const recordScreen = () => {
-  const mediaSource = new MediaSource();
-  mediaSource.addEventListener('sourceopen', handleSourceOpen, false);
-  let mediaRecorder;
-  let recordedBlobs;
-  let sourceBuffer;
+// const recordScreen = async (map, animationFn) => {
+//   const supportsSIMD = await simd();
 
-  const canvas = document.getElementsByClassName('mapboxgl-canvas')[0];
+//   // initialize H264 video encoder
+//   const Encoder = await loadEncoder({ simd: supportsSIMD });
 
-  const stream = canvas.captureStream(); // frames per second
+//   const gl = map.painter.context.gl;
+//   const width = gl.drawingBufferWidth;
+//   const height = gl.drawingBufferHeight;
 
-  function handleSourceOpen() {
-    sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8"');
+//   const encoder = Encoder.create({
+//     width,
+//     height,
+//     fps: 60,
+//     kbps: 64000,
+//     rgbFlipY: true,
+//   });
+
+//   // stub performance.now for deterministic rendering per-frame (only available in dev build)
+//   let now = performance.now();
+//   mapboxgl.setNow(now);
+
+//   const ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
+
+//   function frame() {
+//     // increment stub time by 16.6ms (60 fps)
+//     now += 1000 / 60;
+//     mapboxgl.setNow(now);
+
+//     const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
+//     gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
+//     encoder.encodeRGBPointer(); // encode the frame
+//   }
+
+//   map.on('render', frame); // set up frame-by-frame recording
+
+//   await animationFn();
+
+//   // stop recording
+//   map.off('render', frame);
+//   mapboxgl.restoreNow();
+
+//   // download the encoded video file
+//   const mp4 = encoder.end();
+//   const anchor = document.createElement('a');
+//   anchor.href = URL.createObjectURL(new Blob([mp4], { type: 'video/mp4' }));
+//   anchor.download = 'mapbox-gl';
+//   anchor.click();
+// };
+
+const recordScreen = () => {
+  mapboxgl.accessToken =
+    'pk.eyJ1IjoiYXBhcmxhdG8iLCJhIjoiY2lzdWt3NDExMGJjeDJucWdlZjlhejg2cSJ9.Q7H91w3CryPadhz9joVezw';
+
+  const map = new mapboxgl.Map({
+    container: 'map',
+    center: [7.533634776071096, 45.486077107185565],
+    zoom: 13.5,
+    pitch: 61,
+    bearing: -160,
+    style: 'mapbox://styles/mapbox/satellite-v9',
+  });
+
+  async function animate() {
+    // do all the animations you need to record here
+    map.easeTo({
+      bearing: map.getBearing() - 20,
+      duration: 3000,
+      easing: t => t,
+    });
+    // wait for animation to finish
+    await map.once('moveend');
   }
 
-  function handleDataAvailable(event) {
-    if (event.data && event.data.size > 0) {
-      recordedBlobs.push(event.data);
+  map.on('load', async () => {
+    map.addSource('dem', {
+      type: 'raster-dem',
+      url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+    });
+    map.setTerrain({ source: 'dem', exaggeration: 1.5 });
+
+    // wait until the map settles
+    await map.once('idle');
+
+    // uncomment to fine-tune animation without recording:
+    // animate(); return;
+
+    // don't forget to enable WebAssembly SIMD in chrome://flags for faster encoding
+    const supportsSIMD = await simd();
+
+    // initialize H264 video encoder
+    const Encoder = await loadEncoder({ simd: supportsSIMD });
+
+    const gl = map.painter.context.gl;
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+
+    const encoder = Encoder.create({
+      width,
+      height,
+      fps: 60,
+      kbps: 64000,
+      rgbFlipY: true,
+    });
+
+    // stub performance.now for deterministic rendering per-frame (only available in dev build)
+    let now = performance.now();
+    mapboxgl.setNow(now);
+
+    const ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
+
+    function frame() {
+      // increment stub time by 16.6ms (60 fps)
+      now += 1000 / 60;
+      mapboxgl.setNow(now);
+
+      const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
+      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
+      encoder.encodeRGBPointer(); // encode the frame
     }
-  }
 
-  // The nested try blocks will be simplified when Chrome 47 moves to Stable
-  function startRecording() {
-    let options = { mimeType: 'video/webm' };
-    recordedBlobs = [];
-    try {
-      mediaRecorder = new MediaRecorder(stream, options);
-    } catch (e0) {
-      console.log('Unable to create MediaRecorder with options Object: ', e0);
-      try {
-        options = { mimeType: 'video/webm,codecs=vp9' };
-        mediaRecorder = new MediaRecorder(stream, options);
-      } catch (e1) {
-        console.log('Unable to create MediaRecorder with options Object: ', e1);
-        try {
-          options = 'video/vp8'; // Chrome 47
-          mediaRecorder = new MediaRecorder(stream, options);
-        } catch (e2) {
-          alert(
-            'MediaRecorder is not supported by this browser.\n\n' +
-              'Try Firefox 29 or later, or Chrome 47 or later, ' +
-              'with Enable experimental Web Platform features enabled from chrome://flags.'
-          );
-          console.error('Exception while creating MediaRecorder:', e2);
-          return;
-        }
-      }
-    }
+    map.on('render', frame); // set up frame-by-frame recording
 
-    mediaRecorder.ondataavailable = handleDataAvailable;
-    mediaRecorder.start(100); // collect 100ms of data
-    console.log('MediaRecorder started', mediaRecorder);
-  }
+    await animate(); // run all the animations
 
-  function stopRecording() {
-    mediaRecorder.stop();
-    console.log('Recorded Blobs: ', recordedBlobs);
-  }
+    // stop recording
+    map.off('render', frame);
+    mapboxgl.restoreNow();
 
-  function download() {
-    const blob = new Blob(recordedBlobs, { type: 'video/webm' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = 'test.webm';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    }, 100);
-  }
+    // download the encoded video file
+    const mp4 = encoder.end();
 
-  return { startRecording, stopRecording, download };
+    const anchor = document.createElement('a');
+    anchor.href = URL.createObjectURL(new Blob([mp4], { type: 'video/mp4' }));
+    anchor.download = 'mapbox-gl';
+    anchor.click();
+
+    // make sure to run `ffmpeg -i mapbox-gl.mp4 mapbox-gl-optimized.mp4` to compress the video
+  });
 };
+
+export { recordScreen };

@@ -234,6 +234,7 @@
       childProps={{ id: style.id, url: style }}
     />
   </div>
+  <div id="map" />
 </div>
 
 <style>
