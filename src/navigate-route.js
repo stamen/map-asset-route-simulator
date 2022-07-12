@@ -1,4 +1,3 @@
-import mapboxgl from 'mapbox-gl';
 import loadEncoder from 'https://unpkg.com/mp4-h264@1.0.7/build/mp4-encoder.js';
 import * as turf from '@turf/turf';
 import { config as configStore, mapAssets as mapAssetsStore } from './stores';

@@ -7,10 +7,11 @@
     config as configStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
-  import { recordScreen } from '../record-screen';
 
   export let routeFlag;
   export let setRouteFlag;
+
+  let recordFlag = false;
 
   let route = null;
   routeStore.subscribe(value => {
@@ -126,7 +127,12 @@
     }
   }
 
-  const navigate = async maneuverRoute => {
+  $: if (!routeFlag) {
+    recordFlag = false;
+  }
+
+  const navigate = async (maneuverRoute, options) => {
+    const { record } = options;
     const maneuverRouteSteps = maneuverRoute?.steps || [];
     const coords = maneuverRouteSteps.reduce(
       (acc, step) => acc.concat(step?.geometry?.coordinates || []),
@@ -135,7 +141,8 @@
     const navRoute = { coordinates: coords, steps: maneuverRoute.steps };
 
     setRouteFlag(true);
-    await navigateRoute(map, navRoute, { record: true });
+    if (record) recordFlag = true;
+    await navigateRoute(map, navRoute, { record });
     setRouteFlag(false);
   };
 
@@ -151,44 +158,62 @@
     selectedId = value;
   };
 
-  const runManeuverRoute = async () => {
+  const runManeuverRoute = async options => {
     const maneuverRoute = maneuverRoutes.find(item => item.id === selectedId);
-    await navigate(maneuverRoute);
-  };
-
-  const startNavigation = async () => {
-    // console.log('hello');
-    await runManeuverRoute();
-    // console.log('bye');
-    // await recordScreen(map, runManeuverRoute);
-    // recordScreen();
+    await navigate(maneuverRoute, options);
   };
 </script>
 
 <div class="container">
-  <Dropdown
-    titleText="Moments"
-    {selectedId}
-    label="Select a maneuver"
-    items={maneuverDropdownItems}
-    disabled={!maneuverRoutes.length}
-    on:select={e => selectManeuver(e.detail.selectedId)}
-  />
+  <div class="dropdown-container">
+    <Dropdown
+      titleText="Moments"
+      {selectedId}
+      label="Select a maneuver"
+      items={maneuverDropdownItems}
+      disabled={!maneuverRoutes.length}
+      on:select={e => selectManeuver(e.detail.selectedId)}
+    />
+  </div>
   <button
     class="primary-button"
     disabled={!selectedId || !maneuverRoutes.length}
-    on:click={startNavigation}>Submit</button
+    on:click={() => runManeuverRoute({ record: false })}>Submit</button
+  >
+  <button
+    class="primary-button"
+    disabled={!selectedId || !maneuverRoutes.length}
+    on:click={() => runManeuverRoute({ record: true })}>Record</button
   >
 </div>
+{#if recordFlag}
+  <div class="record" />
+{/if}
 
 <style>
+  .record {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 12px;
+    margin-right: 12px;
+    border-radius: 50%;
+    height: 18px;
+    width: 18px;
+    background-color: red;
+  }
+
   .container {
     width: 240px;
+  }
+
+  .dropdown-container {
+    margin-bottom: 12px;
   }
 
   .primary-button {
     width: 240px;
     height: 36px;
-    margin-top: 12px;
+    margin-bottom: 3px;
   }
 </style>
