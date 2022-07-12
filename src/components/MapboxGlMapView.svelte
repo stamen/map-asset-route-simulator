@@ -1,5 +1,5 @@
 <script>
-  import throttle from 'lodash.throttle';
+  import _ from 'lodash';
   import {
     config as configStore,
     route as routeStore,
@@ -43,7 +43,7 @@
 
   let map;
 
-  const throttledSetMapState = throttle(() => {
+  const throttledSetMapState = _.throttle(() => {
     if (!map) return;
     const bearing = map.getBearing();
     const pitch = map.getPitch();

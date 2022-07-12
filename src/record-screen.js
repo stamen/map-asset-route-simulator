@@ -52,95 +52,66 @@ import { simd } from 'https://unpkg.com/wasm-feature-detect?module';
 //   anchor.click();
 // };
 
-const recordScreen = () => {
-  mapboxgl.accessToken =
-    'pk.eyJ1IjoiYXBhcmxhdG8iLCJhIjoiY2lzdWt3NDExMGJjeDJucWdlZjlhejg2cSJ9.Q7H91w3CryPadhz9joVezw';
-
-  const map = new mapboxgl.Map({
-    container: 'map',
-    center: [7.533634776071096, 45.486077107185565],
-    zoom: 13.5,
-    pitch: 61,
-    bearing: -160,
-    style: 'mapbox://styles/mapbox/satellite-v9',
-  });
-
+const recordScreen = async (map, animationFn) => {
   async function animate() {
     // do all the animations you need to record here
     map.easeTo({
       bearing: map.getBearing() - 20,
       duration: 3000,
-      easing: t => t,
     });
     // wait for animation to finish
     await map.once('moveend');
   }
 
-  map.on('load', async () => {
-    map.addSource('dem', {
-      type: 'raster-dem',
-      url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-    });
-    map.setTerrain({ source: 'dem', exaggeration: 1.5 });
+  // don't forget to enable WebAssembly SIMD in chrome://flags for faster encoding
+  const supportsSIMD = await simd();
 
-    // wait until the map settles
-    await map.once('idle');
+  // initialize H264 video encoder
+  const Encoder = await loadEncoder({ simd: supportsSIMD });
 
-    // uncomment to fine-tune animation without recording:
-    // animate(); return;
+  const gl = map.painter.context.gl;
+  const width = gl.drawingBufferWidth;
+  const height = gl.drawingBufferHeight;
 
-    // don't forget to enable WebAssembly SIMD in chrome://flags for faster encoding
-    const supportsSIMD = await simd();
+  const encoder = Encoder.create({
+    width,
+    height,
+    fps: 60,
+    kbps: 64000,
+    rgbFlipY: true,
+  });
 
-    // initialize H264 video encoder
-    const Encoder = await loadEncoder({ simd: supportsSIMD });
+  // stub performance.now for deterministic rendering per-frame (only available in dev build)
+  let now = performance.now();
+  mapboxgl.setNow(now);
 
-    const gl = map.painter.context.gl;
-    const width = gl.drawingBufferWidth;
-    const height = gl.drawingBufferHeight;
+  const ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
 
-    const encoder = Encoder.create({
-      width,
-      height,
-      fps: 60,
-      kbps: 64000,
-      rgbFlipY: true,
-    });
-
-    // stub performance.now for deterministic rendering per-frame (only available in dev build)
-    let now = performance.now();
+  function frame() {
+    // increment stub time by 16.6ms (60 fps)
+    now += 1000 / 60;
     mapboxgl.setNow(now);
 
-    const ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
+    const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
+    encoder.encodeRGBPointer(); // encode the frame
+  }
 
-    function frame() {
-      // increment stub time by 16.6ms (60 fps)
-      now += 1000 / 60;
-      mapboxgl.setNow(now);
+  map.on('render', frame); // set up frame-by-frame recording
 
-      const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
-      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
-      encoder.encodeRGBPointer(); // encode the frame
-    }
+  await animate(); // run all the animations
 
-    map.on('render', frame); // set up frame-by-frame recording
+  // stop recording
+  map.off('render', frame);
+  mapboxgl.restoreNow();
 
-    await animate(); // run all the animations
+  // download the encoded video file
+  const mp4 = encoder.end();
 
-    // stop recording
-    map.off('render', frame);
-    mapboxgl.restoreNow();
-
-    // download the encoded video file
-    const mp4 = encoder.end();
-
-    const anchor = document.createElement('a');
-    anchor.href = URL.createObjectURL(new Blob([mp4], { type: 'video/mp4' }));
-    anchor.download = 'mapbox-gl';
-    anchor.click();
-
-    // make sure to run `ffmpeg -i mapbox-gl.mp4 mapbox-gl-optimized.mp4` to compress the video
-  });
+  const anchor = document.createElement('a');
+  anchor.href = URL.createObjectURL(new Blob([mp4], { type: 'video/mp4' }));
+  anchor.download = 'mapbox-gl';
+  anchor.click();
 };
 
 export { recordScreen };

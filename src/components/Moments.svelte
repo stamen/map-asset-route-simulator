@@ -158,9 +158,9 @@
 
   const startNavigation = async () => {
     // console.log('hello');
-    // await runManeuverRoute();
+    await runManeuverRoute();
     // console.log('bye');
-    recordScreen(map, runManeuverRoute);
+    // await recordScreen(map, runManeuverRoute);
     // recordScreen();
   };
 </script>

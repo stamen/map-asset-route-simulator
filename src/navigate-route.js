@@ -1,7 +1,15 @@
+import mapboxgl from 'mapbox-gl';
+import loadEncoder from 'https://unpkg.com/mp4-h264@1.0.7/build/mp4-encoder.js';
 import * as turf from '@turf/turf';
 import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
+
+let encoder;
+let ptr;
+let gl;
+let width;
+let height;
 
 let currentSteps;
 
@@ -328,6 +336,10 @@ const navigate = (map, options) => {
         bearing,
       });
 
+      const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
+      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
+      encoder.encodeRGBPointer(); // encode the frame
+
       window.requestAnimationFrame(frame);
     }
 
@@ -361,6 +373,24 @@ const navigateSteps = async (map, steps) => {
 
 // Eases to the start of a route, then begins routing
 const navigateRoute = async (map, route) => {
+  // Load the WASM module first
+  const Encoder = await loadEncoder();
+
+  gl = map.painter.context.gl;
+  width = gl.drawingBufferWidth;
+  height = gl.drawingBufferHeight;
+
+  // Create a new encoder interface
+  encoder = Encoder.create({
+    width,
+    height,
+    fps: 30,
+    kbps: 64000,
+    rgbFlipY: true,
+  });
+
+  ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
+
   const { coordinates, steps } = route;
   currentSteps = steps;
 
@@ -399,6 +429,13 @@ const navigateRoute = async (map, route) => {
       }
 
       navigateSteps(map, steps).then(e => {
+        const mp4 = encoder.end();
+        const anchor = document.createElement('a');
+        anchor.href = URL.createObjectURL(
+          new Blob([mp4], { type: 'video/mp4' })
+        );
+        anchor.download = 'mapbox-gl';
+        anchor.click();
         res(e);
       });
     });
