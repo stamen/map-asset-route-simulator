@@ -2,6 +2,7 @@ import * as turf from '@turf/turf';
 import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
+import { recordScreen } from './record-screen';
 
 let currentSteps;
 
@@ -366,6 +367,10 @@ const navigateRoute = (map, route) => {
 
   if (!steps) return;
 
+  const { startRecording, stopRecording, download } = recordScreen();
+
+  startRecording();
+
   return new Promise(res => {
     const start = coordinates[0];
     const end = coordinates[coordinates.length - 1];
@@ -399,6 +404,8 @@ const navigateRoute = (map, route) => {
       }
 
       navigateSteps(map, steps).then(e => {
+        stopRecording();
+        download();
         res(e);
       });
     });
