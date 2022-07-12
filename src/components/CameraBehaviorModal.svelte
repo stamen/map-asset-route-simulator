@@ -13,21 +13,23 @@
   let speedOptions;
   // Optional
   let maneuverOptions;
+
+  const getDefaultSpeedOptions = routingOptions => ({
+    speed: 17,
+    ...routingOptions,
+  });
+
   configStore.subscribe(value => {
     if (value.durationMultiplier) durationMultiplier = value.durationMultiplier;
     if (value.routingOptions) routingOptions = value.routingOptions;
-    if (value.speedOptions) speedOptions = value.speedOptions;
-    if (value.maneuverOptions) maneuverOptions = value.maneuverOptions;
+    speedOptions =
+      value?.speedOptions ?? getDefaultSpeedOptions(routingOptions);
+    maneuverOptions = value?.maneuverOptions;
   });
 
   let open = false;
 
   let speedOptionsToggle = speedOptions !== undefined;
-
-  const defaultSpeedOptions = {
-    speed: 17,
-    ...routingOptions,
-  };
 
   const setRoutingOptions = ({ property, value }) => {
     // We only have to do this because of a weird bug in the number input
@@ -60,7 +62,7 @@
     });
     const isDefault = Object.entries(nextSpeedOptions).every(kv => {
       const [k, v] = kv;
-      return defaultSpeedOptions?.[k] === v;
+      return getDefaultSpeedOptions(routingOptions)?.[k] === v;
     });
     if (isCurrent) return;
     configStore.update(v => {
@@ -79,7 +81,7 @@
   const toggleSpeedOptions = value => {
     speedOptionsToggle = value;
     if (!speedOptionsToggle) {
-      speedOptions = defaultSpeedOptions;
+      speedOptions = getDefaultSpeedOptions(routingOptions);
       configStore.update(v => {
         delete v.speedOptions;
         return v;

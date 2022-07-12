@@ -1,4 +1,5 @@
 <script>
+  import _ from 'lodash';
   import DisplayArea from './components/DisplayArea.svelte';
   import ControlPanel from './components/ControlPanel.svelte';
   import Loader from './components/Loader.svelte';
@@ -40,7 +41,7 @@
 
     for (const k in hashRoutingOptions) {
       if (!hashRoutingOptions[k]) continue;
-      if (!Object.keys(hashRoutingOptions[k]).length && nextConfig[k]) {
+      if (_.isEmpty(hashRoutingOptions[k]) && nextConfig[k]) {
         delete nextConfig[k];
       } else {
         nextConfig[k] = hashRoutingOptions[k];
@@ -113,23 +114,11 @@
 
     if (value === undefined) return;
 
-    const objsAreEqual = (obj1, obj2) => {
-      const obj1Keys = typeof obj1 === 'object' ? Object.keys(obj1) : [];
-      const obj2Keys = typeof obj2 === 'object' ? Object.keys(obj2) : [];
-      const keys = [...new Set(obj1Keys.concat(obj2Keys))];
-      return keys.every(k => {
-        if (typeof obj1?.[k] === 'object' || typeof obj2?.[k] === 'object') {
-          return objsAreEqual(obj1?.[k], obj2?.[k]);
-        }
-        return obj1?.[k] === obj2?.[k];
-      });
-    };
-
     const doSetJsonValue = key => {
       const storeValue = value[key];
       if (!storeValue && !initialConfig[key]) return false;
       if (!storeValue && initialConfig[key]) return true;
-      const isLocalConfig = objsAreEqual(storeValue, initialConfig[key]);
+      const isLocalConfig = _.isEqual(storeValue, initialConfig[key]);
       return !isLocalConfig;
     };
 
