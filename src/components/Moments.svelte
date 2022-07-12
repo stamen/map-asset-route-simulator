@@ -135,7 +135,7 @@
     const navRoute = { coordinates: coords, steps: maneuverRoute.steps };
 
     setRouteFlag(true);
-    await navigateRoute(map, navRoute);
+    await navigateRoute(map, navRoute, { record: true });
     setRouteFlag(false);
   };
 

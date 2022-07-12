@@ -5,6 +5,7 @@ import { config as configStore, mapAssets as mapAssetsStore } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
 
+let doRecord = false;
 let encoder;
 let ptr;
 let gl;
@@ -25,6 +26,40 @@ configStore.subscribe(
     ({ routingOptions, maneuverOptions, speedOptions, durationMultiplier } =
       value)
 );
+
+const setupRecording = async map => {
+  // Load the WASM module first
+  const Encoder = await loadEncoder();
+
+  gl = map.painter.context.gl;
+  width = gl.drawingBufferWidth;
+  height = gl.drawingBufferHeight;
+
+  // Create a new encoder interface
+  encoder = Encoder.create({
+    width,
+    height,
+    fps: 30,
+    kbps: 64000,
+    rgbFlipY: true,
+  });
+
+  ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
+};
+
+const encodePixels = () => {
+  const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
+  gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
+  encoder.encodeRGBPointer(); // encode the frame
+};
+
+const downloadMp4 = () => {
+  const mp4 = encoder.end();
+  const anchor = document.createElement('a');
+  anchor.href = URL.createObjectURL(new Blob([mp4], { type: 'video/mp4' }));
+  anchor.download = 'mapbox-gl';
+  anchor.click();
+};
 
 // Scale a number within a range to a number in a different range
 const scale = (number, inMin, inMax, outMin, outMax) => {
@@ -152,6 +187,7 @@ const handleManeuver = (map, maneuver, bearingBefore) => {
         bearing,
       });
 
+      if (doRecord) encodePixels();
       window.requestAnimationFrame(frame);
     }
 
@@ -336,10 +372,7 @@ const navigate = (map, options) => {
         bearing,
       });
 
-      const pixels = encoder.memory().subarray(ptr); // get a view into encoder memory
-      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels); // read pixels into encoder
-      encoder.encodeRGBPointer(); // encode the frame
-
+      if (doRecord) encodePixels();
       window.requestAnimationFrame(frame);
     }
 
@@ -372,24 +405,10 @@ const navigateSteps = async (map, steps) => {
 };
 
 // Eases to the start of a route, then begins routing
-const navigateRoute = async (map, route) => {
-  // Load the WASM module first
-  const Encoder = await loadEncoder();
-
-  gl = map.painter.context.gl;
-  width = gl.drawingBufferWidth;
-  height = gl.drawingBufferHeight;
-
-  // Create a new encoder interface
-  encoder = Encoder.create({
-    width,
-    height,
-    fps: 30,
-    kbps: 64000,
-    rgbFlipY: true,
-  });
-
-  ptr = encoder.getRGBPointer(); // keep a pointer to encoder WebAssembly heap memory
+const navigateRoute = async (map, route, options = {}) => {
+  const { record } = options;
+  doRecord = record;
+  if (doRecord) await setupRecording(map);
 
   const { coordinates, steps } = route;
   currentSteps = steps;
@@ -429,13 +448,7 @@ const navigateRoute = async (map, route) => {
       }
 
       navigateSteps(map, steps).then(e => {
-        const mp4 = encoder.end();
-        const anchor = document.createElement('a');
-        anchor.href = URL.createObjectURL(
-          new Blob([mp4], { type: 'video/mp4' })
-        );
-        anchor.download = 'mapbox-gl';
-        anchor.click();
+        if (doRecord) downloadMp4();
         res(e);
       });
     });
