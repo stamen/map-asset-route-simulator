@@ -7,6 +7,7 @@
     config as configStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
+  import { setupRecording, encodePixels, downloadMp4 } from '../record-screen';
 
   export let routeFlag;
   export let setRouteFlag;
@@ -131,8 +132,7 @@
     recordFlag = false;
   }
 
-  const navigate = async (maneuverRoute, options) => {
-    const { record } = options;
+  const navigate = async maneuverRoute => {
     const maneuverRouteSteps = maneuverRoute?.steps || [];
     const coords = maneuverRouteSteps.reduce(
       (acc, step) => acc.concat(step?.geometry?.coordinates || []),
@@ -141,8 +141,7 @@
     const navRoute = { coordinates: coords, steps: maneuverRoute.steps };
 
     setRouteFlag(true);
-    if (record) recordFlag = true;
-    await navigateRoute(map, navRoute, { record });
+    await navigateRoute(map, navRoute);
     setRouteFlag(false);
   };
 
@@ -158,9 +157,19 @@
     selectedId = value;
   };
 
-  const runManeuverRoute = async options => {
+  const runManeuverRoute = async () => {
     const maneuverRoute = maneuverRoutes.find(item => item.id === selectedId);
-    await navigate(maneuverRoute, options);
+    await navigate(maneuverRoute);
+  };
+
+  const record = async () => {
+    recordFlag = true;
+    await setupRecording(map);
+    map.on('render', encodePixels);
+    await runManeuverRoute();
+    map.off('render', encodePixels);
+    downloadMp4('hello');
+    recordFlag = false;
   };
 </script>
 
@@ -178,12 +187,12 @@
   <button
     class="primary-button"
     disabled={!selectedId || !maneuverRoutes.length}
-    on:click={() => runManeuverRoute({ record: false })}>Submit</button
+    on:click={runManeuverRoute}>Submit</button
   >
   <button
     class="primary-button"
     disabled={!selectedId || !maneuverRoutes.length}
-    on:click={() => runManeuverRoute({ record: true })}>Record</button
+    on:click={record}>Record</button
   >
 </div>
 {#if recordFlag}
