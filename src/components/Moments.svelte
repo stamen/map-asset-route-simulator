@@ -163,12 +163,15 @@
   };
 
   const record = async () => {
+    const { maneuver } = maneuverRoutes.find(item => item.id === selectedId);
+    let fileName = maneuver?.instruction || maneuver?.type;
+    fileName = fileName.toLowerCase().replaceAll(' ', '-');
     recordFlag = true;
     await setupRecording(map);
     map.on('render', encodePixels);
     await runManeuverRoute();
     map.off('render', encodePixels);
-    downloadMp4('hello');
+    downloadMp4(fileName);
     recordFlag = false;
   };
 </script>

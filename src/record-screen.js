@@ -17,8 +17,9 @@ const setupRecording = async map => {
   encoder = Encoder.create({
     width,
     height,
+    // Going on the lower side here to allow faster rendering
     fps: 30,
-    kbps: 16000,
+    kbps: 8000,
     rgbFlipY: true,
   });
 
