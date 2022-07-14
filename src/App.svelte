@@ -53,11 +53,13 @@
         speedOptions: config.speedOptions,
         maneuverOptions: config.maneuverOptions,
       });
+      // Override default routing options in config with options from hash
       let cameraBehavior = _.assign(trimmedConfig, value);
 
       cameraBehavior = Object.entries(cameraBehavior).reduce((acc, kv) => {
         const [k, v] = kv;
         let value = v;
+        // Hash values may use empty objects to override a default value by removing it
         if (_.isObject(v) && !Object.keys(v).length) {
           value = null;
         }
