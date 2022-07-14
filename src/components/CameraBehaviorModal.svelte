@@ -1,14 +1,14 @@
 <script>
   import { Modal, Slider, Toggle } from 'carbon-components-svelte';
-  import { config as configStore } from '../stores';
+  import { routingOptions as routingOptionsStore } from '../stores';
   import ManeuverConfiguration from './ManeuverConfiguration.svelte';
   import RoutingOptions from './RoutingOptions.svelte';
   import { NUMBER_INPUT_STEPS } from '../constants';
 
   // Required
-  let durationMultiplier;
+  let durationMultiplier = 1;
   // Required
-  let routingOptions;
+  let routingOptions = {};
   // Optional
   let speedOptions;
   // Optional
@@ -19,7 +19,7 @@
     ...routingOptions,
   });
 
-  configStore.subscribe(value => {
+  routingOptionsStore.subscribe(value => {
     if (value.durationMultiplier) durationMultiplier = value.durationMultiplier;
     if (value.routingOptions) routingOptions = value.routingOptions;
     speedOptions =
@@ -45,7 +45,10 @@
       return routingOptions?.[k] === v;
     });
     if (!isCurrent) {
-      configStore.update(v => ({ ...v, routingOptions: nextRoutingOptions }));
+      routingOptionsStore.update(v => ({
+        ...v,
+        routingOptions: nextRoutingOptions,
+      }));
     }
   };
 
@@ -65,7 +68,7 @@
       return getDefaultSpeedOptions(routingOptions)?.[k] === v;
     });
     if (isCurrent) return;
-    configStore.update(v => {
+    routingOptionsStore.update(v => {
       if (isDefault) {
         delete v.speedOptions;
         return v;
@@ -75,14 +78,14 @@
   };
 
   const setDurationMultiplier = value => {
-    configStore.update(v => ({ ...v, durationMultiplier: value }));
+    routingOptionsStore.update(v => ({ ...v, durationMultiplier: value }));
   };
 
   const toggleSpeedOptions = value => {
     speedOptionsToggle = value;
     if (!speedOptionsToggle) {
       speedOptions = getDefaultSpeedOptions(routingOptions);
-      configStore.update(v => {
+      routingOptionsStore.update(v => {
         delete v.speedOptions;
         return v;
       });
@@ -92,7 +95,7 @@
   const handleSetManeuverOptions = e => {
     const options = e.detail;
 
-    configStore.update(v => {
+    routingOptionsStore.update(v => {
       if (!options || !Object.keys(options).length) {
         delete v.maneuverOptions;
         return v;
@@ -174,6 +177,7 @@
         <RoutingOptions
           title="Speed options"
           routingOptions={{ ...routingOptions, ...speedOptions }}
+          disabled={!speedOptionsToggle}
           on:setProperty={e => setSpeedOptions(e.detail)}
         />
         <div class="toggle-container">

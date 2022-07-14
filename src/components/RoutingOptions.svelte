@@ -12,6 +12,8 @@
     NUMBER_INPUT_STEPS,
   } from '../constants';
 
+  export let disabled;
+
   const dispatch = createEventDispatcher();
 
   // These are the only supported properties
@@ -57,6 +59,7 @@
           min={propertyDetails?.[property]?.min ?? 0}
           max={propertyDetails?.[property]?.max ?? 1000}
           step={NUMBER_INPUT_STEPS?.[property] ?? 1}
+          {disabled}
           on:change={e => setRoutingOptions(property, e.detail)}
         />
       </div>

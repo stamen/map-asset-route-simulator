@@ -12,9 +12,10 @@
     fullScreenLoading as fullScreenLoadingStore,
     deviceSize as deviceSizeStore,
     map as mapStore,
+    routingOptions as routingOptionsStore,
   } from './stores';
   import { makeConfig } from './make-config';
-  import { readHash, writeHash } from './query';
+  import { writeHash } from './query';
   import {
     DEFAULT_ROUTELINE_PROPERTIES,
     PUCK,
@@ -23,43 +24,77 @@
   import { removeMarkerLayer } from './mapbox-gl-utils';
 
   export let localConfig;
-  const initialConfig = makeConfig(localConfig);
 
-  // Special handling to persist camera behavior (routing options) in URL
-  // Default behavior is configured in the local.js file, but behavior can be changed
-  const setConfigCameraOptionsFromHash = config => {
-    let nextConfig = { ...config };
+  const config = makeConfig(localConfig);
+  configStore.set(config);
 
-    const hashObj = readHash(window.location.hash);
+  let durationMultiplier = null;
+  let routingOptions = null;
+  let speedOptions = null;
+  let maneuverOptions = null;
 
-    let hashRoutingOptions = {
-      durationMultiplier: hashObj?.durationMultiplier,
-      routingOptions: hashObj?.routingOptions,
-      speedOptions: hashObj?.speedOptions,
-      maneuverOptions: hashObj?.maneuverOptions,
-    };
+  // Flag the first time we load from the store because at that point, the store
+  // will only contain data derived from the hash. We need to combine it with the
+  // values from the config for the store to be correct
+  let setRoutingOptionsOnLoad = true;
+  routingOptionsStore.subscribe(value => {
+    durationMultiplier = null;
+    routingOptions = null;
+    speedOptions = null;
+    maneuverOptions = null;
 
-    for (const k in hashRoutingOptions) {
-      if (!hashRoutingOptions[k]) continue;
-      if (_.isEmpty(hashRoutingOptions[k]) && nextConfig[k]) {
-        delete nextConfig[k];
-      } else {
-        nextConfig[k] = hashRoutingOptions[k];
+    // Set the store on load
+    if (setRoutingOptionsOnLoad) {
+      setRoutingOptionsOnLoad = false;
+
+      const trimmedConfig = _.cloneDeep({
+        durationMultiplier: config.durationMultiplier,
+        routingOptions: config.routingOptions,
+        speedOptions: config.speedOptions,
+        maneuverOptions: config.maneuverOptions,
+      });
+      let cameraBehavior = _.assign(trimmedConfig, value);
+
+      cameraBehavior = Object.entries(cameraBehavior).reduce((acc, kv) => {
+        const [k, v] = kv;
+        let value = v;
+        if (_.isObject(v) && !Object.keys(v).length) {
+          value = null;
+        }
+        if (!!value) {
+          acc[k] = value;
+        }
+        return acc;
+      }, {});
+
+      routingOptionsStore.set(cameraBehavior);
+    }
+    // Set the hash based on the store value
+    else {
+      if (value.durationMultiplier !== config.durationMultiplier) {
+        durationMultiplier = value.durationMultiplier ?? null;
+      }
+      if (!_.isEqual(value?.routingOptions, config.routingOptions)) {
+        routingOptions = value.routingOptions ?? null;
+      }
+
+      // Set the default for these two as empty objects because they're optional
+      // and can override the default value to no value
+      if (!_.isEqual(value?.speedOptions, config.speedOptions)) {
+        speedOptions = value.speedOptions ?? {};
+      }
+      if (!_.isEqual(value?.maneuverOptions, config.maneuverOptions)) {
+        maneuverOptions = value.maneuverOptions ?? {};
       }
     }
-    return nextConfig;
-  };
-
-  configStore.set(
-    JSON.parse(JSON.stringify(setConfigCameraOptionsFromHash(initialConfig)))
-  );
+  });
 
   let mapState;
   mapStateStore.subscribe(value => {
     if (value && Object.keys(value).length) {
       mapState = value;
     } else {
-      mapStateStore.set(initialConfig.mapState);
+      mapStateStore.set(config.mapState);
     }
   });
 
@@ -100,47 +135,6 @@
 
   let fullScreenLoading = { loading: false };
   fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
-
-  let durationMultiplier = null;
-  let routingOptions = null;
-  let speedOptions = null;
-  let maneuverOptions = null;
-
-  configStore.subscribe(value => {
-    durationMultiplier = null;
-    routingOptions = null;
-    speedOptions = null;
-    maneuverOptions = null;
-
-    if (value === undefined) return;
-
-    const doSetJsonValue = key => {
-      const storeValue = value[key];
-      if (!storeValue && !initialConfig[key]) return false;
-      if (!storeValue && initialConfig[key]) return true;
-      const isLocalConfig = _.isEqual(storeValue, initialConfig[key]);
-      return !isLocalConfig;
-    };
-
-    if (
-      value.durationMultiplier &&
-      initialConfig.durationMultiplier !== value.durationMultiplier
-    ) {
-      durationMultiplier = value.durationMultiplier;
-    }
-
-    if (doSetJsonValue('routingOptions')) {
-      routingOptions = value.routingOptions ?? {};
-    }
-
-    if (doSetJsonValue('speedOptions')) {
-      speedOptions = value.speedOptions ?? {};
-    }
-
-    if (doSetJsonValue('maneuverOptions')) {
-      maneuverOptions = value.maneuverOptions ?? {};
-    }
-  });
 
   $: {
     if (

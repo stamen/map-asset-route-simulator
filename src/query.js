@@ -19,7 +19,14 @@ const booleanKeys = [];
 const mapLocationKeys = ['bearing', 'center', 'pitch', 'zoom'];
 
 // Keys that should be decoded as numbers
-const numericKeys = ['bearing', 'lat', 'lng', 'pitch', 'zoom'];
+const numericKeys = [
+  'bearing',
+  'lat',
+  'lng',
+  'pitch',
+  'zoom',
+  'durationMultiplier',
+];
 
 function toQueryString(obj) {
   let qs = obj.map ? `map=${obj.map}` : '';
