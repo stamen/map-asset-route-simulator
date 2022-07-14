@@ -43,7 +43,7 @@
     speedOptions = null;
     maneuverOptions = null;
 
-    // Set the store on load
+    // Set the routingOptions store on load
     if (setRoutingOptionsOnLoad) {
       setRoutingOptionsOnLoad = false;
 
@@ -69,7 +69,7 @@
 
       routingOptionsStore.set(cameraBehavior);
     }
-    // Set the hash based on the store value
+    // For setting the hash based on the store value
     else {
       if (value.durationMultiplier !== config.durationMultiplier) {
         durationMultiplier = value.durationMultiplier ?? null;
