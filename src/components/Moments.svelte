@@ -15,11 +15,22 @@
   let recordFlag = false;
 
   let route = null;
+  let routeId = '';
   routeStore.subscribe(value => {
     if (value && value?.response) {
       route = value?.response;
     } else {
       route = null;
+    }
+
+    if (value && value?.locations) {
+      // Get a unique route identifier from lng/lat that should be the same despite reloads
+      routeId = 0;
+      for (const v of value?.locations) {
+        const { center } = v;
+        routeId = routeId + center.lat + center.lng;
+      }
+      routeId = `${routeId}`.replace('.', '');
     }
   });
   let map;
@@ -163,9 +174,14 @@
   };
 
   const record = async () => {
-    const { maneuver } = maneuverRoutes.find(item => item.id === selectedId);
+    const { id, maneuver } = maneuverRoutes.find(
+      item => item.id === selectedId
+    );
     let fileName = maneuver?.instruction || maneuver?.type;
-    fileName = fileName.toLowerCase().replaceAll(' ', '-');
+    fileName = `${routeId}-${id}-${fileName
+      .toLowerCase()
+      .replaceAll(' ', '-')}`;
+
     recordFlag = true;
     await setupRecording(map);
     map.on('render', encodePixels);
