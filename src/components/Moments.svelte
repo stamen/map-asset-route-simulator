@@ -7,16 +7,30 @@
     config as configStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
+  import { setupRecording, encodePixels, downloadMp4 } from '../record-screen';
 
   export let routeFlag;
   export let setRouteFlag;
 
+  let recordFlag = false;
+
   let route = null;
+  let routeId = '';
   routeStore.subscribe(value => {
     if (value && value?.response) {
       route = value?.response;
     } else {
       route = null;
+    }
+
+    if (value && value?.locations) {
+      // Get a unique route identifier from lng/lat that should be the same despite reloads
+      routeId = 0;
+      for (const v of value?.locations) {
+        const { center } = v;
+        routeId = routeId + center.lat + center.lng;
+      }
+      routeId = `${routeId}`.replace('.', '');
     }
   });
   let map;
@@ -125,6 +139,10 @@
     }
   }
 
+  $: if (!routeFlag) {
+    recordFlag = false;
+  }
+
   const navigate = async maneuverRoute => {
     const maneuverRouteSteps = maneuverRoute?.steps || [];
     const coords = maneuverRouteSteps.reduce(
@@ -150,36 +168,80 @@
     selectedId = value;
   };
 
-  const runManeuverRoute = () => {
+  const runManeuverRoute = async () => {
     const maneuverRoute = maneuverRoutes.find(item => item.id === selectedId);
-    navigate(maneuverRoute);
+    await navigate(maneuverRoute);
+  };
+
+  const record = async () => {
+    const { id, maneuver } = maneuverRoutes.find(
+      item => item.id === selectedId
+    );
+    let fileName = maneuver?.instruction || maneuver?.type;
+    fileName = `${routeId}-${id}-${fileName
+      .toLowerCase()
+      .replaceAll(' ', '-')}`;
+
+    recordFlag = true;
+    await setupRecording(map);
+    map.on('render', encodePixels);
+    await runManeuverRoute();
+    map.off('render', encodePixels);
+    downloadMp4(fileName);
+    recordFlag = false;
   };
 </script>
 
 <div class="container">
-  <Dropdown
-    titleText="Moments"
-    {selectedId}
-    label="Select a maneuver"
-    items={maneuverDropdownItems}
-    disabled={!maneuverRoutes.length}
-    on:select={e => selectManeuver(e.detail.selectedId)}
-  />
+  <div class="dropdown-container">
+    <Dropdown
+      titleText="Moments"
+      {selectedId}
+      label="Select a maneuver"
+      items={maneuverDropdownItems}
+      disabled={!maneuverRoutes.length}
+      on:select={e => selectManeuver(e.detail.selectedId)}
+    />
+  </div>
   <button
     class="primary-button"
     disabled={!selectedId || !maneuverRoutes.length}
     on:click={runManeuverRoute}>Submit</button
   >
+  <button
+    class="primary-button"
+    disabled={!selectedId || !maneuverRoutes.length}
+    on:click={record}>Record</button
+  >
 </div>
+{#if recordFlag}
+  <div class="record" />
+{/if}
 
 <style>
+  .record {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin-top: 12px;
+    margin-right: 12px;
+    border-radius: 50%;
+    height: 18px;
+    width: 18px;
+    background-color: red;
+  }
+
   .container {
     width: 240px;
+  }
+
+  .dropdown-container {
+    margin-bottom: 12px;
   }
 
   .primary-button {
     width: 240px;
     height: 36px;
-    margin-top: 12px;
+    margin-bottom: 3px;
   }
 </style>

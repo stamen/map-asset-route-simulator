@@ -360,7 +360,7 @@ const navigateSteps = async (map, steps) => {
 };
 
 // Eases to the start of a route, then begins routing
-const navigateRoute = (map, route) => {
+const navigateRoute = async (map, route) => {
   const { coordinates, steps } = route;
   currentSteps = steps;
 
