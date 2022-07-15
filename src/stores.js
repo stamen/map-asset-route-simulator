@@ -78,7 +78,7 @@ const routingOptionsKeys = [
 ];
 let initialRoutingOptions = Object.keys(hashObj).reduce((acc, key) => {
   if (routingOptionsKeys.includes(key)) {
-    acc[key] = hashObj[key] ?? null;
+    acc[key] = hashObj[key];
   }
   return acc;
 }, {});

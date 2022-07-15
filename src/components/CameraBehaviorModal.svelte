@@ -1,18 +1,17 @@
 <script>
+  import _ from 'lodash';
   import { Modal, Slider, Toggle } from 'carbon-components-svelte';
   import { routingOptions as routingOptionsStore } from '../stores';
   import ManeuverConfiguration from './ManeuverConfiguration.svelte';
   import RoutingOptions from './RoutingOptions.svelte';
   import { NUMBER_INPUT_STEPS } from '../constants';
 
-  // Required
   let durationMultiplier = 1;
-  // Required
   let routingOptions = {};
-  // Optional
-  let speedOptions;
-  // Optional
-  let maneuverOptions;
+  let speedOptions = {};
+  let maneuverOptions = {};
+
+  const isEmptyObj = v => _.isObject(v) && !Object.keys(v).length;
 
   const getDefaultSpeedOptions = routingOptions => ({
     speed: 17,
@@ -22,8 +21,9 @@
   routingOptionsStore.subscribe(value => {
     if (value.durationMultiplier) durationMultiplier = value.durationMultiplier;
     if (value.routingOptions) routingOptions = value.routingOptions;
-    speedOptions =
-      value?.speedOptions ?? getDefaultSpeedOptions(routingOptions);
+    speedOptions = isEmptyObj(value?.speedOptions)
+      ? getDefaultSpeedOptions(routingOptions)
+      : value?.speedOptions;
     maneuverOptions = value?.maneuverOptions;
   });
 
@@ -52,6 +52,14 @@
     }
   };
 
+  const speedOptionsAreDefault = options => {
+    const isDefault = Object.entries(options).every(kv => {
+      const [k, v] = kv;
+      return getDefaultSpeedOptions(routingOptions)?.[k] === v;
+    });
+    return isDefault;
+  };
+
   const setSpeedOptions = ({ property, value }) => {
     const step = NUMBER_INPUT_STEPS[property] ?? 0.1;
     const decimal = `${step}`.split('.')[1]?.length ?? 0;
@@ -63,15 +71,11 @@
       const [k, v] = kv;
       return speedOptions?.[k] === v;
     });
-    const isDefault = Object.entries(nextSpeedOptions).every(kv => {
-      const [k, v] = kv;
-      return getDefaultSpeedOptions(routingOptions)?.[k] === v;
-    });
+    const isDefault = speedOptionsAreDefault(nextSpeedOptions);
     if (isCurrent) return;
     routingOptionsStore.update(v => {
       if (isDefault) {
-        delete v.speedOptions;
-        return v;
+        return { ...v, speedOptions: {} };
       }
       return { ...v, speedOptions: nextSpeedOptions };
     });
@@ -85,23 +89,17 @@
     speedOptionsToggle = value;
     if (!speedOptionsToggle) {
       speedOptions = getDefaultSpeedOptions(routingOptions);
-      routingOptionsStore.update(v => {
-        delete v.speedOptions;
-        return v;
-      });
+      routingOptionsStore.update(v => ({
+        ...v,
+        speedOptions: {},
+      }));
     }
   };
 
   const handleSetManeuverOptions = e => {
-    const options = e.detail;
+    let options = e.detail ?? {};
 
-    routingOptionsStore.update(v => {
-      if (!options || !Object.keys(options).length) {
-        delete v.maneuverOptions;
-        return v;
-      }
-      return { ...v, maneuverOptions: options };
-    });
+    routingOptionsStore.update(v => ({ ...v, maneuverOptions: options }));
   };
 </script>
 
@@ -120,7 +118,7 @@
           </div>
         {/each}
       </div>
-      {#if speedOptions}
+      {#if speedOptions && !speedOptionsAreDefault(speedOptions)}
         <div class="section">
           <span class="bold">Speed options:</span>
           {#each Object.keys(speedOptions) as key}
@@ -130,7 +128,7 @@
           {/each}
         </div>
       {/if}
-      {#if maneuverOptions}
+      {#if maneuverOptions && !isEmptyObj(maneuverOptions)}
         <div class="section">
           <span class="bold">Maneuver options:</span>
           {#each Object.keys(maneuverOptions) as key}

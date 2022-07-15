@@ -48,45 +48,37 @@
       setRoutingOptionsOnLoad = false;
 
       const trimmedConfig = _.cloneDeep({
-        durationMultiplier: config.durationMultiplier,
-        routingOptions: config.routingOptions,
-        speedOptions: config.speedOptions,
-        maneuverOptions: config.maneuverOptions,
+        durationMultiplier: config.durationMultiplier ?? {},
+        routingOptions: config.routingOptions ?? {},
+        speedOptions: config.speedOptions ?? {},
+        maneuverOptions: config.maneuverOptions ?? {},
       });
       // Override default routing options in config with options from hash
       let cameraBehavior = _.assign(trimmedConfig, value);
-
-      cameraBehavior = Object.entries(cameraBehavior).reduce((acc, kv) => {
-        const [k, v] = kv;
-        let value = v;
-        // Hash values may use empty objects to override a default value by removing it
-        if (_.isObject(v) && !Object.keys(v).length) {
-          value = null;
-        }
-        if (!!value) {
-          acc[k] = value;
-        }
-        return acc;
-      }, {});
 
       routingOptionsStore.set(cameraBehavior);
     }
     // For setting the hash based on the store value
     else {
+      const isEmptyObj = v => _.isObject(v) && !Object.keys(v).length;
       if (value.durationMultiplier !== config.durationMultiplier) {
         durationMultiplier = value.durationMultiplier ?? null;
       }
+
       if (!_.isEqual(value?.routingOptions, config.routingOptions)) {
-        routingOptions = value.routingOptions ?? null;
+        routingOptions = value.routingOptions;
       }
 
-      // Set the default for these two as empty objects because they're optional
-      // and can override the default value to no value
       if (!_.isEqual(value?.speedOptions, config.speedOptions)) {
-        speedOptions = value.speedOptions ?? {};
+        // In the store, we make empty values empty objects, but if there's no config for that thing,
+        // treat the same and don't create a hash
+        const noHash = isEmptyObj(value.speedOptions) && !config.speedOptions;
+        speedOptions = noHash ? null : value.speedOptions;
       }
       if (!_.isEqual(value?.maneuverOptions, config.maneuverOptions)) {
-        maneuverOptions = value.maneuverOptions ?? {};
+        const noHash =
+          isEmptyObj(value.maneuverOptions) && !config.maneuverOptions;
+        maneuverOptions = noHash ? null : value.maneuverOptions;
       }
     }
   });
