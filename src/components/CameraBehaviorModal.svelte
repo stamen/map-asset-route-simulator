@@ -1,34 +1,35 @@
 <script>
+  import _ from 'lodash';
   import { Modal, Slider, Toggle } from 'carbon-components-svelte';
-  import { config as configStore } from '../stores';
+  import { routingOptions as routingOptionsStore } from '../stores';
   import ManeuverConfiguration from './ManeuverConfiguration.svelte';
   import RoutingOptions from './RoutingOptions.svelte';
   import { NUMBER_INPUT_STEPS } from '../constants';
 
-  // Required
-  let durationMultiplier;
-  // Required
-  let routingOptions;
-  // Optional
-  let speedOptions;
-  // Optional
-  let maneuverOptions;
-  configStore.subscribe(
-    value =>
-      ({ durationMultiplier, routingOptions, maneuverOptions, speedOptions } =
-        value)
-  );
+  let durationMultiplier = 1;
+  let routingOptions = {};
+  let speedOptions = {};
+  let maneuverOptions = {};
+
+  const isEmptyObj = v => _.isObject(v) && !Object.keys(v).length;
+
+  const getDefaultSpeedOptions = routingOptions => ({
+    speed: 17,
+    ...routingOptions,
+  });
+
+  routingOptionsStore.subscribe(value => {
+    if (value.durationMultiplier) durationMultiplier = value.durationMultiplier;
+    if (value.routingOptions) routingOptions = value.routingOptions;
+    speedOptions = isEmptyObj(value?.speedOptions)
+      ? getDefaultSpeedOptions(routingOptions)
+      : value?.speedOptions;
+    maneuverOptions = value?.maneuverOptions;
+  });
 
   let open = false;
 
   let speedOptionsToggle = speedOptions !== undefined;
-
-  const defaultSpeedOptions = {
-    threshold: 0,
-    leadDistance: 100,
-    zoom: routingOptions.zoom,
-    pitch: routingOptions.pitch,
-  };
 
   const setRoutingOptions = ({ property, value }) => {
     // We only have to do this because of a weird bug in the number input
@@ -44,8 +45,19 @@
       return routingOptions?.[k] === v;
     });
     if (!isCurrent) {
-      configStore.update(v => ({ ...v, routingOptions: nextRoutingOptions }));
+      routingOptionsStore.update(v => ({
+        ...v,
+        routingOptions: nextRoutingOptions,
+      }));
     }
+  };
+
+  const speedOptionsAreDefault = options => {
+    const isDefault = Object.entries(options).every(kv => {
+      const [k, v] = kv;
+      return getDefaultSpeedOptions(routingOptions)?.[k] === v;
+    });
+    return isDefault;
   };
 
   const setSpeedOptions = ({ property, value }) => {
@@ -59,45 +71,35 @@
       const [k, v] = kv;
       return speedOptions?.[k] === v;
     });
-    const isDefault = Object.entries(nextSpeedOptions).every(kv => {
-      const [k, v] = kv;
-      return defaultSpeedOptions?.[k] === v;
-    });
+    const isDefault = speedOptionsAreDefault(nextSpeedOptions);
     if (isCurrent) return;
-    configStore.update(v => {
+    routingOptionsStore.update(v => {
       if (isDefault) {
-        delete v.speedOptions;
-        return v;
+        return { ...v, speedOptions: {} };
       }
       return { ...v, speedOptions: nextSpeedOptions };
     });
   };
 
   const setDurationMultiplier = value => {
-    configStore.update(v => ({ ...v, durationMultiplier: value }));
+    routingOptionsStore.update(v => ({ ...v, durationMultiplier: value }));
   };
 
   const toggleSpeedOptions = value => {
     speedOptionsToggle = value;
     if (!speedOptionsToggle) {
-      speedOptions = defaultSpeedOptions;
-      configStore.update(v => {
-        delete v.speedOptions;
-        return v;
-      });
+      speedOptions = getDefaultSpeedOptions(routingOptions);
+      routingOptionsStore.update(v => ({
+        ...v,
+        speedOptions: {},
+      }));
     }
   };
 
   const handleSetManeuverOptions = e => {
-    const options = e.detail;
+    let options = e.detail ?? {};
 
-    configStore.update(v => {
-      if (!options || !Object.keys(options).length) {
-        delete v.maneuverOptions;
-        return v;
-      }
-      return { ...v, maneuverOptions: options };
-    });
+    routingOptionsStore.update(v => ({ ...v, maneuverOptions: options }));
   };
 </script>
 
@@ -116,7 +118,7 @@
           </div>
         {/each}
       </div>
-      {#if speedOptions}
+      {#if speedOptions && !speedOptionsAreDefault(speedOptions)}
         <div class="section">
           <span class="bold">Speed options:</span>
           {#each Object.keys(speedOptions) as key}
@@ -126,7 +128,7 @@
           {/each}
         </div>
       {/if}
-      {#if maneuverOptions}
+      {#if maneuverOptions && !isEmptyObj(maneuverOptions)}
         <div class="section">
           <span class="bold">Maneuver options:</span>
           {#each Object.keys(maneuverOptions) as key}
@@ -173,6 +175,7 @@
         <RoutingOptions
           title="Speed options"
           routingOptions={{ ...routingOptions, ...speedOptions }}
+          disabled={!speedOptionsToggle}
           on:setProperty={e => setSpeedOptions(e.detail)}
         />
         <div class="toggle-container">

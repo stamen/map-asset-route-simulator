@@ -3,7 +3,14 @@ const round = (n, digits) => {
 };
 
 // Keys that should be encoded/decoded as arrays
-const jsonKeys = ['locations', 'routeLines', 'deviceSize'];
+const jsonKeys = [
+  'locations',
+  'routeLines',
+  'deviceSize',
+  'routingOptions',
+  'speedOptions',
+  'maneuverOptions',
+];
 
 // Keys that should be encoded/decoded as boolean values
 const booleanKeys = [];
@@ -12,7 +19,14 @@ const booleanKeys = [];
 const mapLocationKeys = ['bearing', 'center', 'pitch', 'zoom'];
 
 // Keys that should be decoded as numbers
-const numericKeys = ['bearing', 'lat', 'lng', 'pitch', 'zoom'];
+const numericKeys = [
+  'bearing',
+  'lat',
+  'lng',
+  'pitch',
+  'zoom',
+  'durationMultiplier',
+];
 
 function toQueryString(obj) {
   let qs = obj.map ? `map=${obj.map}` : '';
