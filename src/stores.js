@@ -68,3 +68,18 @@ export const routeLineLayer = writable(routelines);
 export const deviceSize = writable(hashObj.deviceSize || null);
 
 export const fullScreenLoading = writable({ loading: false });
+
+// Routing options store
+const routingOptionsKeys = [
+  'durationMultiplier',
+  'routingOptions',
+  'speedOptions',
+  'maneuverOptions',
+];
+let initialRoutingOptions = Object.keys(hashObj).reduce((acc, key) => {
+  if (routingOptionsKeys.includes(key)) {
+    acc[key] = hashObj[key];
+  }
+  return acc;
+}, {});
+export const routingOptions = writable(initialRoutingOptions);
