@@ -1,5 +1,8 @@
 import * as turf from '@turf/turf';
-import { config as configStore, mapAssets as mapAssetsStore } from './stores';
+import {
+  mapAssets as mapAssetsStore,
+  routingOptions as routingOptionsStore,
+} from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
 
@@ -12,7 +15,7 @@ let routingOptions;
 let maneuverOptions;
 let speedOptions;
 let durationMultiplier;
-configStore.subscribe(
+routingOptionsStore.subscribe(
   value =>
     ({ routingOptions, maneuverOptions, speedOptions, durationMultiplier } =
       value)
