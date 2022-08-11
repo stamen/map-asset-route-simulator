@@ -23,7 +23,11 @@
       route = null;
     }
 
-    if (value && value?.locations) {
+    if (
+      value &&
+      value?.locations &&
+      value?.locations.every(loc => !!loc?.center)
+    ) {
       // Get a unique route identifier from lng/lat that should be the same despite reloads
       routeId = 0;
       for (const v of value?.locations) {
