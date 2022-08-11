@@ -261,7 +261,27 @@ const navigate = (map, options) => {
       );
       bearing = smoothBearing(bearing, nextBearing);
 
-      setPuckLocation(map, alongRoute, nextBearing);
+      // ------------------------------------------------------------------------------------------------------------
+
+      // Unsmoothed
+      const puckRoute = targetRoute
+        .slice(1)
+        .concat([targetRoute[targetRoute.length - 1]]);
+      const alongPuck = turf.along(
+        turf.lineString(puckRoute),
+        routeDistance * phase
+      ).geometry.coordinates;
+      const puckBearing = turf.rhumbBearing(
+        turf.point(alongRoute),
+        turf.point(alongPuck)
+      );
+
+      setPuckLocation(map, alongRoute, puckBearing);
+
+      // Smoothed
+      // setPuckLocation(map, alongRoute, nextBearing);
+
+      // ------------------------------------------------------------------------------------------------------------
 
       const distanceLeft = distance - distance * phase;
 
