@@ -19,6 +19,8 @@
     updateRouteLine,
   } from '../mapbox-gl-utils';
   import {
+    PUCK,
+    DESTINATION_PIN,
     ROUTE_LINE_LAYER_ID_PREFIX,
     ROUTE_LINE_SOURCE,
     ROUTE_LINE_SOURCE_ID,
@@ -38,6 +40,9 @@
 
   let routeLineLayers;
   routeLineLayerStore.subscribe(value => (routeLineLayers = value));
+
+  let mapAssets;
+  mapAssetsStore.subscribe(value => (mapAssets = value));
 
   mapboxgl.accessToken = mapboxGlAccessToken;
 
@@ -111,6 +116,18 @@
   $: {
     // url can be a url or a full stylesheet
     if (map && url) {
+      let puckLayer;
+      let destinationPinLayer;
+      let puckSource;
+      let destinationPinSource;
+      try {
+        const { layers: jsonLayers, sources: jsonSources } = map.getStyle();
+        puckLayer = jsonLayers.find(l => l.id === PUCK);
+        destinationPinLayer = jsonLayers.find(l => l.id === DESTINATION_PIN);
+        puckSource = jsonSources[PUCK];
+        destinationPinSource = jsonSources[DESTINATION_PIN];
+      } catch (err) {}
+
       if (typeof url === 'string') {
         map.setStyle(url);
         const callback = () => {
@@ -118,6 +135,14 @@
           updateRouteLine(map, directionsApiResponse, {
             fitToBounds: false,
           });
+          if (destinationPinLayer && !map.getLayer(DESTINATION_PIN)) {
+            map.addSource(DESTINATION_PIN, destinationPinSource);
+            map.addLayer(destinationPinLayer);
+          }
+          if (puckLayer && !map.getLayer(PUCK)) {
+            map.addSource(PUCK, puckSource);
+            map.addLayer(puckLayer);
+          }
         };
         waitForStyleUpdate(map, callback);
       } else {
@@ -132,12 +157,28 @@
           stylesheet.layers.findIndex(
             l => l.type === 'symbol' && l?.layout?.['text-field']
           ) || stylesheet.layers.length;
+
         !hasRouteLine &&
           stylesheet.layers.splice(
             lowestSymbolLayerIndex,
             0,
             ...routeLineLayers
           );
+
+        const hasDestinationPin = stylesheet.layers.find(
+          l => l.id === DESTINATION_PIN
+        );
+        const hasPuck = stylesheet.layers.find(l => l.id === PUCK);
+
+        if (destinationPinLayer && !hasDestinationPin) {
+          stylesheet.sources[DESTINATION_PIN] = destinationPinSource;
+          stylesheet.layers.push(destinationPinLayer);
+        }
+        if (puckLayer && !hasPuck) {
+          stylesheet.sources[PUCK] = puckSource;
+          stylesheet.layers.push(puckLayer);
+        }
+
         const { coordinates } = directionsApiResponse;
 
         const highResGeom = {

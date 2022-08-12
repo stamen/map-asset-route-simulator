@@ -1,5 +1,8 @@
 import * as turf from '@turf/turf';
-import { config as configStore, mapAssets as mapAssetsStore } from './stores';
+import {
+  mapAssets as mapAssetsStore,
+  routingOptions as routingOptionsStore,
+} from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
 
@@ -12,7 +15,7 @@ let routingOptions;
 let maneuverOptions;
 let speedOptions;
 let durationMultiplier;
-configStore.subscribe(
+routingOptionsStore.subscribe(
   value =>
     ({ routingOptions, maneuverOptions, speedOptions, durationMultiplier } =
       value)
@@ -258,7 +261,20 @@ const navigate = (map, options) => {
       );
       bearing = smoothBearing(bearing, nextBearing);
 
-      setPuckLocation(map, alongRoute, nextBearing);
+      // Unsmoothed bearing for puck to more accurately reflect travel direction on route
+      const puckRoute = targetRoute
+        .slice(1)
+        .concat([targetRoute[targetRoute.length - 1]]);
+      const alongPuck = turf.along(
+        turf.lineString(puckRoute),
+        routeDistance * phase
+      ).geometry.coordinates;
+      const puckBearing = turf.rhumbBearing(
+        turf.point(alongRoute),
+        turf.point(alongPuck)
+      );
+
+      setPuckLocation(map, alongRoute, puckBearing);
 
       const distanceLeft = distance - distance * phase;
 

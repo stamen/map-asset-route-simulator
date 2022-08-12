@@ -157,6 +157,7 @@
       locations: geocoders,
       response: null,
     });
+    route = undefined;
 
     const emptyGeojson = {
       type: 'FeatureCollection',
