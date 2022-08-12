@@ -261,9 +261,7 @@ const navigate = (map, options) => {
       );
       bearing = smoothBearing(bearing, nextBearing);
 
-      // ------------------------------------------------------------------------------------------------------------
-
-      // Unsmoothed
+      // Unsmoothed bearing for puck to more accurately reflect travel direction on route
       const puckRoute = targetRoute
         .slice(1)
         .concat([targetRoute[targetRoute.length - 1]]);
@@ -277,11 +275,6 @@ const navigate = (map, options) => {
       );
 
       setPuckLocation(map, alongRoute, puckBearing);
-
-      // Smoothed
-      // setPuckLocation(map, alongRoute, nextBearing);
-
-      // ------------------------------------------------------------------------------------------------------------
 
       const distanceLeft = distance - distance * phase;
 
