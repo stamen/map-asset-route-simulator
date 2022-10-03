@@ -27,15 +27,24 @@
   };
   let editOptions = defaultOptions;
 
-  const maneuverDropdownItems = MANEUVERS.map(name => ({
-    id: name,
-    text: name,
-  }));
+  let maneuverDropdownItems = [{ id: '*', text: 'all maneuvers' }];
+  maneuverDropdownItems = maneuverDropdownItems.concat(
+    MANEUVERS.map(name => ({
+      id: name,
+      text: name,
+    }))
+  );
 
   const getSetManeuvers = () => {
     const maneuvers = Object.keys(maneuverOptions)
-      .filter(k => MANEUVERS.includes(k))
-      .map(k => ({ name: k, options: maneuverOptions[k] }));
+      .filter(k => k === '*' || MANEUVERS.includes(k))
+      .sort(k => (k === '*' ? -1 : 1))
+      .map(k => ({
+        id: k,
+        name: maneuverDropdownItems.find(item => item.id === k).text,
+        options: maneuverOptions[k],
+      }));
+
     return maneuvers;
   };
 
@@ -98,6 +107,10 @@
     const nextManeuverOptions = maneuverOptions;
     delete nextManeuverOptions[id];
     dispatch('setManeuverOptions', nextManeuverOptions);
+  };
+
+  const disableSpecificManeuverConfig = (maneuvers, maneuverObj) => {
+    return maneuvers.some(item => item.id === '*') && maneuverObj.id !== '*';
   };
 </script>
 
@@ -166,17 +179,29 @@
         </div>
       {/if}
       {#each setManeuvers as maneuverObj}
-        <div class="set-maneuver">
+        <div
+          class="set-maneuver"
+          class:disabled={disableSpecificManeuverConfig(
+            setManeuvers,
+            maneuverObj
+          )}
+        >
           <div class="maneuver-actions">
             <button
               class="action-button"
-              on:click={() => editExistingManeuver(maneuverObj.name)}
-              ><Fa icon={faPencil} /></button
+              on:click={() => editExistingManeuver(maneuverObj.id)}
+              disabled={disableSpecificManeuverConfig(
+                setManeuvers,
+                maneuverObj
+              )}><Fa icon={faPencil} /></button
             >
             <button
               class="action-button"
-              on:click={() => removeManeuver(maneuverObj.name)}
-              ><Fa icon={faTrash} /></button
+              on:click={() => removeManeuver(maneuverObj.id)}
+              disabled={disableSpecificManeuverConfig(
+                setManeuvers,
+                maneuverObj
+              )}><Fa icon={faTrash} /></button
             >
           </div>
           <div class="bold">{maneuverObj.name}</div>
@@ -226,6 +251,10 @@
     padding: 6px;
     margin-bottom: 6px;
     position: relative;
+  }
+
+  .disabled {
+    opacity: 50%;
   }
 
   .scroll-window {

@@ -11,6 +11,8 @@
   let speedOptions = {};
   let maneuverOptions = {};
 
+  let displayOptions = {};
+
   const isEmptyObj = v => _.isObject(v) && !Object.keys(v).length;
 
   const getDefaultSpeedOptions = routingOptions => ({
@@ -98,9 +100,17 @@
 
   const handleSetManeuverOptions = e => {
     let options = e.detail ?? {};
-
     routingOptionsStore.update(v => ({ ...v, maneuverOptions: options }));
   };
+
+  $: {
+    displayOptions = JSON.parse(JSON.stringify(maneuverOptions));
+    if (Object.keys(displayOptions).includes('*')) {
+      displayOptions = {
+        'all maneuvers': displayOptions['*'],
+      };
+    }
+  }
 </script>
 
 <div>
@@ -128,15 +138,15 @@
           {/each}
         </div>
       {/if}
-      {#if maneuverOptions && !isEmptyObj(maneuverOptions)}
+      {#if displayOptions && !isEmptyObj(displayOptions)}
         <div class="section">
           <span class="bold">Maneuver options:</span>
-          {#each Object.keys(maneuverOptions) as key}
+          {#each Object.keys(displayOptions) as key}
             <div class="indent-1">
-              {key}: {#each Object.keys(maneuverOptions[key]) as subKey}
+              {key}: {#each Object.keys(displayOptions[key]) as subKey}
                 <div class="indent-2">
                   {subKey}:
-                  <span class="code">{maneuverOptions[key][subKey]}</span>
+                  <span class="code">{displayOptions[key][subKey]}</span>
                 </div>
               {/each}
             </div>
