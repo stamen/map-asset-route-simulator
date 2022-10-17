@@ -115,7 +115,7 @@
   // Reactive block to handle a new style coming in
   $: {
     // url can be a url or a full stylesheet
-    if (map && url) {
+    if (map && url && directionsApiResponse) {
       let puckLayer;
       let destinationPinLayer;
       let puckSource;
@@ -179,7 +179,7 @@
           stylesheet.layers.push(puckLayer);
         }
 
-        const { coordinates } = directionsApiResponse;
+        const coordinates = directionsApiResponse.coordinates;
 
         const highResGeom = {
           type: 'Feature',
@@ -189,7 +189,7 @@
           },
         };
 
-        let source = geometries
+        let source = coordinates
           ? { type: 'geojson', data: highResGeom }
           : ROUTE_LINE_SOURCE;
         stylesheet.sources[ROUTE_LINE_SOURCE_ID] = source;
