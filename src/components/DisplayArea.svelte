@@ -231,7 +231,7 @@
       {height}
       {width}
       children={MapboxGlMapView}
-      childProps={{ id: style.id, url: style }}
+      childProps={{ id: style.id, url: style, routeFlag }}
     />
   </div>
 </div>

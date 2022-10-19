@@ -28,6 +28,8 @@
 
   export let id;
   export let url;
+  export let height;
+  export let routeFlag;
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
@@ -217,11 +219,19 @@
   }
 </script>
 
-<div id="map-viewer" class="map" />
+<div
+  id="map-viewer"
+  class="map"
+  style={`height:${
+    !routeFlag ? height : height * 1.5
+  }px; transform: translate(0px, ${!routeFlag ? '0' : height * 0.25}px)`}
+/>
 
 <style>
   .map {
+    position: absolute;
     height: 100%;
     width: 100%;
+    overflow: hidden;
   }
 </style>

@@ -5,12 +5,10 @@
   export let childProps;
 </script>
 
-<div class="layout" style={`height:${height}px; width:${width}px`}>
-  <div
-    class="outline"
-    style={`height:${height + 40}px; width:${width + 40}px`}
-  />
-  <svelte:component this={children} {...childProps} />
+<div class="outline" style={`height:${height + 40}px; width:${width + 40}px`}>
+  <div class="layout" style={`height:${height}px; width:${width}px`}>
+    <svelte:component this={children} {...childProps} {height} />
+  </div>
 </div>
 
 <style>
@@ -20,6 +18,7 @@
     position: relative;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
 
   .outline {
@@ -27,6 +26,6 @@
     border: 20px solid black;
     z-index: 1000;
     pointer-events: none;
-    position: absolute;
+    position: relative;
   }
 </style>

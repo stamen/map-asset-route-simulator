@@ -5,6 +5,7 @@ import {
 } from './stores';
 import { PUCK, DESTINATION_PIN } from './constants';
 import { setPuckLocation, setMarkerLayer } from './mapbox-gl-utils';
+import mapboxgl from 'mapbox-gl';
 
 let currentSteps;
 
