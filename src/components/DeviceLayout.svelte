@@ -25,7 +25,7 @@
     border-radius: 30px;
     border: 20px solid black;
     z-index: 1000;
-    pointer-events: none;
+    /* pointer-events: none; */
     position: relative;
   }
 </style>
