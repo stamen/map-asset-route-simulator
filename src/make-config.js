@@ -50,12 +50,44 @@ const makeConfig = localConfig => {
 
   const defaultDurationMultiplier = 50;
 
-  const defaultRoutingOptions = { leadDistance: 125, pitch: 60, zoom: 16 };
+  const defaultRoutingOptions = {
+    leadDistance: 125,
+    pitch: 45,
+    zoom: 15.5,
+  };
+
+  // See https://docs.mapbox.com/api/navigation/directions/#maneuver-types for types
+  const defaultManeuverOptions = {
+    '*': {
+      pitch: 35,
+      zoom: 16.75,
+    },
+  };
+
+  const defaultSpeedOptions = {
+    leadDistance: 150,
+    // meters per second
+    speed: 17.5,
+    zoom: 13.5,
+    pitch: 50,
+  };
 
   // TODO we should do deep merge just in case
   const routingOptions = {
     ...defaultRoutingOptions,
     ...(localConfig?.routingOptions || {}),
+  };
+
+  // TODO we should do deep merge just in case
+  const maneuverOptions = {
+    ...defaultManeuverOptions,
+    ...(localConfig?.maneuverOptions || {}),
+  };
+
+  // TODO we should do deep merge just in case
+  const speedOptions = {
+    ...defaultSpeedOptions,
+    ...(localConfig?.speedOptions || {}),
   };
 
   let nextLocalConfig = JSON.parse(JSON.stringify(localConfig));
@@ -75,6 +107,8 @@ const makeConfig = localConfig => {
     mapState: defaultMapState,
     durationMultiplier: defaultDurationMultiplier,
     routingOptions,
+    maneuverOptions,
+    speedOptions,
     ...nextLocalConfig,
   };
 

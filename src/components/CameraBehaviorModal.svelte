@@ -1,7 +1,10 @@
 <script>
   import _ from 'lodash';
   import { Modal, Slider, Toggle } from 'carbon-components-svelte';
-  import { routingOptions as routingOptionsStore } from '../stores';
+  import {
+    routingOptions as routingOptionsStore,
+    config as configStore,
+  } from '../stores';
   import ManeuverConfiguration from './ManeuverConfiguration.svelte';
   import RoutingOptions from './RoutingOptions.svelte';
   import { NUMBER_INPUT_STEPS } from '../constants';
@@ -12,6 +15,17 @@
   let maneuverOptions = {};
 
   let displayOptions = {};
+
+  let defaultRoutingOptions;
+  let defaultSpeedOptions;
+  let defaultManeuverOptions;
+  let defaultDurationMultiplier;
+  configStore.subscribe(v => {
+    defaultRoutingOptions = v.routingOptions;
+    defaultSpeedOptions = v.speedOptions;
+    defaultManeuverOptions = v.maneuverOptions;
+    defaultDurationMultiplier = v.durationMultiplier;
+  });
 
   const isEmptyObj = v => _.isObject(v) && !Object.keys(v).length;
 
@@ -29,7 +43,7 @@
     maneuverOptions = value?.maneuverOptions;
   });
 
-  let open = false;
+  let open = true;
 
   let speedOptionsToggle = speedOptions !== undefined;
 
@@ -93,7 +107,7 @@
       speedOptions = getDefaultSpeedOptions(routingOptions);
       routingOptionsStore.update(v => ({
         ...v,
-        speedOptions: {},
+        speedOptions: defaultSpeedOptions ?? {},
       }));
     }
   };
@@ -101,6 +115,23 @@
   const handleSetManeuverOptions = e => {
     let options = e.detail ?? {};
     routingOptionsStore.update(v => ({ ...v, maneuverOptions: options }));
+  };
+
+  const resetAllOptions = () => {
+    const nextStore = JSON.parse(
+      JSON.stringify({
+        routingOptions: defaultRoutingOptions,
+        speedOptions: defaultSpeedOptions,
+        maneuverOptions: defaultManeuverOptions,
+        durationMultiplier: defaultDurationMultiplier,
+      })
+    );
+    const hasSpeedOptions =
+      defaultSpeedOptions && Object.keys(defaultSpeedOptions).length;
+    if (hasSpeedOptions !== speedOptionsToggle) {
+      toggleSpeedOptions(hasSpeedOptions);
+    }
+    routingOptionsStore.set(nextStore);
   };
 
   $: {
@@ -161,6 +192,10 @@
 </div>
 
 <Modal bind:open modalHeading="Camera behavior" passiveModal>
+  <div class="reset-button-container">
+    <button class="reset-button" on:click={resetAllOptions}>Reset values</button
+    >
+  </div>
   <div class="modal-container">
     <div class="options">
       <div class="option">
@@ -279,6 +314,17 @@
     /* Accounts for label space that we don't use */
     top: -16px;
     right: 0px;
+  }
+
+  .reset-button-container {
+    position: fixed;
+    top: 14px;
+    left: 190px;
+    z-index: 1000;
+  }
+
+  .reset-button {
+    padding: 6px;
   }
 
   :global(.bx--slider) {
