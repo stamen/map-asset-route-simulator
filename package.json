@@ -30,6 +30,7 @@
     "@joshnuss/svelte-codemirror": "^0.2.6",
     "@mapbox/mapbox-gl-geocoder": "^5.0.1",
     "@mapbox/mapbox-gl-style-spec": "^13.23.0",
+    "@rollup/plugin-image": "^3.0.3",
     "@turf/turf": "^6.5.0",
     "carbon-components-svelte": "^0.64.0",
     "codemirror": "^5.65.5",
