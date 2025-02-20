@@ -9,6 +9,8 @@
   } from '../stores';
   import { addFigmaImages } from '../add-figma-images';
   import { MAP_ASSET_ICONS } from '../constants';
+  import puckPng from '../assets/puck.png';
+  import destinationPinPng from '../assets/destination-pin.png';
 
   let figmaLink;
   configStore.subscribe(value => ({ figmaLink } = value));
@@ -64,12 +66,11 @@
   };
 
   const addDefaultImages = async () => {
-    const basePath = 'process.env.BASE_PATH';
     const icons = [
-      { name: 'puck', path: `${basePath}assets/puck.png` },
+      { name: 'puck', path: puckPng },
       {
         name: 'destination-pin',
-        path: `${basePath}assets/destination-pin.png`,
+        path: destinationPinPng,
       },
     ];
     for (const icon of icons) {
