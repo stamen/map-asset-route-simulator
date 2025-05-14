@@ -41,6 +41,7 @@ export default {
     format: 'esm',
     name: 'app',
     file: 'public/build/bundle.js',
+    inlineDynamicImports: true,
   },
   plugins: [
     replace({

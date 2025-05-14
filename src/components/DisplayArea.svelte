@@ -35,6 +35,8 @@
       style = value;
     }
   });
+
+  $: console.log(styles);
 </script>
 
 <div class="display-area">
