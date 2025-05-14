@@ -232,7 +232,6 @@
   }
 
   .directions {
-    width: 330px;
     display: flex;
     align-items: center;
     flex-direction: column;
@@ -265,14 +264,17 @@
     display: flex;
     align-items: center;
     /* This feels bad */
-    margin-left: 21px;
+    /* margin-left: 21px; */
+    flex-grow: 1;
+    position: relative;
   }
 
   .geocoder-container {
     display: flex;
     position: relative;
-    width: 180px;
+    width: 150px;
     height: 36px;
+    flex-grow: 1;
   }
 
   .geocoder {
@@ -292,6 +294,8 @@
   }
 
   .label {
+    position: absolute;
+    left: -24px;
     display: flex;
     font-weight: bold;
     font-size: 18px;
