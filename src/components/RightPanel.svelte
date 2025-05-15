@@ -57,9 +57,10 @@
 
   let selected = styleDropdownItems?.[INITIAL_STYLE_INDEX]?.id;
 
-  let style = styles[INITIAL_STYLE_INDEX].url;
+  let style = styles[INITIAL_STYLE_INDEX];
 
   const getStyleFromUrl = async url => {
+    if (!url) return;
     let nextUrl = url;
     if (url.includes('localhost')) {
       const [preface, address] = nextUrl.split('localhost');
@@ -72,7 +73,7 @@
     try {
       const data = await fetchStyle(nextUrl);
       if (data && typeof data === 'object') {
-        style = data;
+        style.url = data;
         localUrl = nextUrl;
         poll(nextUrl);
         return { status: '200', url: nextUrl };
@@ -88,13 +89,12 @@
   };
 
   mapStyleStore.subscribe(value => {
-    if (value) {
+    if (!!value) {
       style = value;
-      const currentStyle =
-        styles.find(item => item.url == value)?.id ?? 'custom';
+      const currentStyle = style?.id ?? 'custom';
       selected = currentStyle;
       if (currentStyle === 'custom') {
-        textInput = value;
+        textInput = value?.url;
         submitCustomUrl();
       }
     }
@@ -115,15 +115,16 @@
     const { selectedId } = e.detail;
     selected = selectedId;
     if (selectedId === 'custom') {
-      textInput = style;
+      textInput = style.url;
       error = '';
+
       return;
     }
     textInput = '';
     localUrl = '';
     error = '';
     const nextStyle = styles.find(s => s.id === selectedId);
-    style = nextStyle.url;
+    style = nextStyle;
   };
 
   const handleSetDeviceSize = e => {
@@ -154,9 +155,9 @@
   };
 
   $: {
-    if (style) {
-      const url = typeof style === 'string' ? style : localUrl;
-      mapStyleStore.set(url);
+    if (style?.url) {
+      const url = typeof style?.url === 'string' ? style.url : localUrl;
+      mapStyleStore.set({ ...style, url });
     }
   }
 </script>

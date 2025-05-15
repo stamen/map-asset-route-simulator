@@ -10,6 +10,7 @@ const jsonKeys = [
   'routingOptions',
   'speedOptions',
   'maneuverOptions',
+  'styleUrl',
 ];
 
 // Keys that should be encoded/decoded as boolean values

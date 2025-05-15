@@ -120,7 +120,7 @@
 
   let styleUrl = null;
   mapStyleStore.subscribe(value => {
-    styleUrl = value !== '' ? value : null;
+    styleUrl = !!value ? value : null;
   });
 
   let deviceSize = null;

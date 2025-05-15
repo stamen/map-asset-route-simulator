@@ -28,15 +28,13 @@
     }
   });
 
-  let style = styles[INITIAL_STYLE_INDEX].url;
+  let style = styles[INITIAL_STYLE_INDEX];
 
   mapStyleStore.subscribe(value => {
     if (value) {
       style = value;
     }
   });
-
-  $: console.log(styles);
 </script>
 
 <div class="display-area">
@@ -45,7 +43,7 @@
       {height}
       {width}
       children={MapboxGlMapView}
-      childProps={{ id: style.id, url: style }}
+      childProps={style}
     />
   </div>
 </div>
