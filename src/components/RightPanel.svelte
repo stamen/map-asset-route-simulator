@@ -5,7 +5,7 @@
     deviceSize as deviceSizeStore,
   } from '../stores';
   import { Dropdown, TextInput } from 'carbon-components-svelte';
-  import { fetchStyle } from '../fetch-style';
+  import { fetchStyle, isMapboxUrl } from '../fetch-style';
 
   export let routeFlag;
 
@@ -23,6 +23,7 @@
   let width = devices[INITIAL_DEVICE_INDEX].width;
   let height = devices[INITIAL_DEVICE_INDEX].height;
   let selectedDevice = devices[INITIAL_DEVICE_INDEX]?.id ?? 'custom';
+  let selectedRenderer;
 
   let widthInput = null;
   let heightInput = null;
@@ -55,6 +56,11 @@
     })
     .concat([{ id: 'custom', text: 'Custom URL' }]);
 
+  let rendererDropdownItems = [
+    { id: 'mapbox-gl', text: 'Mapbox GL' },
+    { id: 'maplibre-gl', text: 'Maplibre GL' },
+  ];
+
   let selected = styleDropdownItems?.[INITIAL_STYLE_INDEX]?.id;
 
   let style;
@@ -84,10 +90,23 @@
     }
   };
 
+  const setRenderOptions = url => {
+    if (isMapboxUrl(url)) {
+      rendererDropdownItems = [{ id: 'mapbox-gl', text: 'Mapbox GL' }];
+      selectedRenderer = 'mapbox-gl';
+    } else {
+      rendererDropdownItems = [
+        { id: 'mapbox-gl', text: 'Mapbox GL' },
+        { id: 'maplibre-gl', text: 'Maplibre GL' },
+      ];
+    }
+  };
+
   const submitCustomUrl = async () => {
     const next = await getStyleFromUrl(textInput);
     const { status, url } = next;
     if (status === '200') {
+      setRenderOptions(url);
       // Custom map style obj
       const custom = {
         id: 'custom',
@@ -107,7 +126,7 @@
     } else {
       style = styles[INITIAL_STYLE_INDEX];
     }
-
+    selectedRenderer = style?.renderer ?? style?.type;
     const currentStyle = style?.id ?? 'custom';
     selected = currentStyle;
     if (currentStyle === 'custom') {
@@ -140,6 +159,7 @@
     error = '';
     const nextStyle = styles.find(s => s.id === selectedId);
     style = nextStyle;
+    setRenderOptions(style?.url);
   };
 
   const handleSetDeviceSize = e => {
@@ -158,6 +178,11 @@
     deviceSizeStore.set(device);
   };
 
+  const handleRenderer = e => {
+    const { selectedId } = e.detail;
+    style = { ...style, renderer: selectedId };
+  };
+
   const submitCustomDeviceSize = () => {
     const device = {
       id: 'custom',
@@ -170,8 +195,9 @@
   };
 
   $: {
-    if (style?.url) {
+    if (style) {
       const url = typeof style?.url === 'string' ? style.url : localUrl;
+      selectedRenderer = style?.renderer ?? style?.type;
       mapStyleStore.set({ ...style, url });
     }
   }
@@ -234,6 +260,15 @@
         <div class="error">Style not found</div>
       {/if}
     {/if}
+    <div class="dropdown">
+      <Dropdown
+        titleText="Renderers"
+        selectedId={selectedRenderer}
+        items={rendererDropdownItems}
+        disabled={routeFlag}
+        on:select={handleRenderer}
+      />
+    </div>
   </div>
 </div>
 

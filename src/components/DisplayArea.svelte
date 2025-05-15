@@ -39,12 +39,18 @@
 
 <div class="display-area">
   <div class="device-container">
-    <DeviceLayout
-      {height}
-      {width}
-      children={MapboxGlMapView}
-      childProps={style}
-    />
+    {#key style?.renderer ?? style?.type}
+      <DeviceLayout
+        {height}
+        {width}
+        children={MapboxGlMapView}
+        childProps={{
+          id: style?.id,
+          url: style?.url,
+          mapRenderer: style?.renderer ?? style?.type,
+        }}
+      />
+    {/key}
   </div>
 </div>
 

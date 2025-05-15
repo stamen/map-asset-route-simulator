@@ -26,8 +26,8 @@
 
   export let id;
   export let url;
+  export let mapRenderer;
 
-  const mapRenderer = 'mapbox-gl';
   let renderer;
 
   let mapboxGlAccessToken;
