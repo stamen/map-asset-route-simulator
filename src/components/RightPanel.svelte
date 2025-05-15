@@ -57,7 +57,7 @@
 
   let selected = styleDropdownItems?.[INITIAL_STYLE_INDEX]?.id;
 
-  let style = styles[INITIAL_STYLE_INDEX];
+  let style;
 
   const getStyleFromUrl = async url => {
     if (!url) return;
@@ -85,18 +85,34 @@
   };
 
   const submitCustomUrl = async () => {
-    await getStyleFromUrl(textInput);
+    const next = await getStyleFromUrl(textInput);
+    const { status, url } = next;
+    if (status === '200') {
+      // Custom map style obj
+      const custom = {
+        id: 'custom',
+        name: 'Custom',
+        type: 'mapbox-gl',
+        url,
+      };
+      style = custom;
+    }
   };
 
+  // This is only to set style on mount
   mapStyleStore.subscribe(value => {
+    if (!!style) return;
     if (!!value) {
       style = value;
-      const currentStyle = style?.id ?? 'custom';
-      selected = currentStyle;
-      if (currentStyle === 'custom') {
-        textInput = value?.url;
-        submitCustomUrl();
-      }
+    } else {
+      style = styles[INITIAL_STYLE_INDEX];
+    }
+
+    const currentStyle = style?.id ?? 'custom';
+    selected = currentStyle;
+    if (currentStyle === 'custom') {
+      textInput = value?.url;
+      submitCustomUrl();
     }
   });
 
@@ -117,7 +133,6 @@
     if (selectedId === 'custom') {
       textInput = style.url;
       error = '';
-
       return;
     }
     textInput = '';
