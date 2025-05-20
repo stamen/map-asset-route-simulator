@@ -109,7 +109,7 @@
             console.error(err);
           });
         addRouteLine(map);
-        updateRouteLine(map, directionsApiResponse);
+        updateRouteLine(map, mapRenderer, directionsApiResponse);
       };
 
       waitForStyleUpdate(map, callback);
@@ -146,7 +146,7 @@
         map.setStyle(url);
         const callback = () => {
           addRouteLine(map);
-          updateRouteLine(map, directionsApiResponse, {
+          updateRouteLine(map, mapRenderer, directionsApiResponse, {
             fitToBounds: false,
           });
           if (destinationPinLayer && !map.getLayer(DESTINATION_PIN)) {
@@ -227,7 +227,9 @@
   }
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
-    updateRouteLine(map, directionsApiResponse, { fitToBounds: true });
+    updateRouteLine(map, mapRenderer, directionsApiResponse, {
+      fitToBounds: true,
+    });
   }
 </script>
 

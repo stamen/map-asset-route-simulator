@@ -1,11 +1,13 @@
 <script>
   import { onMount, tick } from 'svelte';
   import { faXmark } from '@fortawesome/free-solid-svg-icons';
+  import { Dropdown } from 'carbon-components-svelte';
   import Fa from 'svelte-fa/src/fa.svelte';
   import mapboxgl from 'mapbox-gl';
   import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.min.js';
   import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
   import { fetchDirections } from '../fetch-directions';
+
   import {
     config as configStore,
     route as routeStore,
@@ -19,11 +21,14 @@
 
   let mapboxGlAccessToken;
   let directionsApiCall;
+  let presetRoutes;
   configStore.subscribe(
-    value => ({ mapboxGlAccessToken, directionsApiCall } = value)
+    value => ({ mapboxGlAccessToken, directionsApiCall, presetRoutes } = value)
   );
 
   let disableSubmit = false;
+
+  let selectedRoute = 'custom';
 
   let geocoders = DEFAULT_GEOCODERS;
 
@@ -177,9 +182,60 @@
     await navigateRoute(map, { steps: null });
     setRouteFlag(false);
   };
+
+  const routeDropdownOptions = presetRoutes
+    ? presetRoutes
+        .map(r => ({
+          id: r.id,
+          text: r.name,
+        }))
+        .concat([{ id: 'custom', text: 'Custom' }])
+    : null;
+
+  $: {
+    const activeOption = presetRoutes.find(preset => {
+      const { route } = preset;
+      const isSame = geocoders.every(stop => {
+        return Object.entries(stop).every(([k, v]) => {
+          return route.some(s => JSON.stringify(s[k]) === JSON.stringify(v));
+        });
+      });
+      return isSame;
+    });
+    if (activeOption) {
+      selectedRoute = activeOption?.id;
+    } else {
+      selectedRoute = 'custom';
+    }
+  }
+
+  const handleSelectPresetRoute = e => {
+    const { selectedId } = e.detail;
+    selectedRoute = selectedId;
+    if (selectedId === 'custom') return;
+    clearRoute();
+    const nextRoute = presetRoutes.find(pr => pr.id === selectedRoute);
+    if (nextRoute) {
+      geocoders = nextRoute.route;
+    }
+  };
+
+  const copyRouteToClipboard = () => {
+    navigator.clipboard.writeText(JSON.stringify(geocoders, null, 2));
+  };
 </script>
 
 <div class="directions">
+  {#if routeDropdownOptions && routeDropdownOptions.length}
+    <div class="dropdown">
+      <Dropdown
+        titleText="Presets"
+        selectedId={selectedRoute}
+        items={routeDropdownOptions}
+        on:select={handleSelectPresetRoute}
+      />
+    </div>
+  {/if}
   {#each geocoders as geocoderObj, i}
     <div class="stop">
       <div class="search-container">
@@ -218,6 +274,11 @@
     on:click={submitRequest}>Submit</button
   >
   <button
+    class="primary-button button-margin mt12"
+    disabled={!route}
+    on:click={copyRouteToClipboard}>{`Copy route to clipboard`}</button
+  >
+  <button
     class="primary-button button-margin"
     disabled={!route}
     on:click={routeFlag ? cancelRoute : runRoute}
@@ -231,10 +292,19 @@
     z-index: 1000px !important;
   }
 
+  .dropdown {
+    margin-bottom: 12px;
+    width: 100%;
+  }
+
   .directions {
     display: flex;
     align-items: center;
     flex-direction: column;
+  }
+
+  .mt12 {
+    margin-top: 12px;
   }
 
   .button-margin {
