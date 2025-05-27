@@ -193,15 +193,17 @@
     : null;
 
   $: {
-    const activeOption = presetRoutes.find(preset => {
-      const { route } = preset;
-      const isSame = geocoders.every(stop => {
-        return Object.entries(stop).every(([k, v]) => {
-          return route.some(s => JSON.stringify(s[k]) === JSON.stringify(v));
+    const activeOption =
+      presetRoutes &&
+      presetRoutes.find(preset => {
+        const { route } = preset;
+        const isSame = geocoders.every(stop => {
+          return Object.entries(stop).every(([k, v]) => {
+            return route.some(s => JSON.stringify(s[k]) === JSON.stringify(v));
+          });
         });
+        return isSame;
       });
-      return isSame;
-    });
     if (activeOption) {
       selectedRoute = activeOption?.id;
     } else {
