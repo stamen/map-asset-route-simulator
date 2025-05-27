@@ -2,6 +2,7 @@
   import _ from 'lodash';
   import DisplayArea from './components/DisplayArea.svelte';
   import ControlPanel from './components/ControlPanel.svelte';
+  import RightPanel from './components/RightPanel.svelte';
   import Loader from './components/Loader.svelte';
   import {
     config as configStore,
@@ -119,7 +120,7 @@
 
   let styleUrl = null;
   mapStyleStore.subscribe(value => {
-    styleUrl = value !== '' ? value : null;
+    styleUrl = !!value ? value : null;
   });
 
   let deviceSize = null;
@@ -183,6 +184,7 @@
 <main>
   <ControlPanel {setRouteFlag} {routeFlag} />
   <DisplayArea {routeFlag} />
+  <RightPanel {routeFlag} />
   {#if fullScreenLoading.loading}
     <Loader helperText={fullScreenLoading.helperText || null} />
   {/if}

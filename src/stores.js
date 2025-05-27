@@ -40,6 +40,9 @@ export const mapAssets = writable({ puck: null, 'destination-pin': null });
 // Map style store
 export const mapStyle = writable(hashObj.styleUrl || '');
 
+// Holds map style object
+export const mapStyleObj = writable(null);
+
 // Route line layer store
 const routelines = hashObj?.routeLines
   ? hashObj?.routeLines.map((line, i) => {

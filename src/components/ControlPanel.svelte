@@ -33,7 +33,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    width: 360px;
+    width: 300px;
     left: 0;
     border-right: 1px solid #666;
     align-items: center;
@@ -44,7 +44,7 @@
   .control {
     display: flex;
     justify-content: center;
-    width: 330px;
+    width: 270px;
   }
 
   .mt24 {

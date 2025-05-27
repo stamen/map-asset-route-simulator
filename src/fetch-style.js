@@ -25,4 +25,4 @@ const fetchStyle = async url => {
   return data;
 };
 
-export { fetchStyle };
+export { fetchStyle, isMapboxUrl };
