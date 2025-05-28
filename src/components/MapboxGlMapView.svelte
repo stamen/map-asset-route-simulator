@@ -90,7 +90,7 @@
           loading: true,
           helperText: 'Loading assets',
         });
-        addFigmaImages(map)
+        addFigmaImages(map, mapRenderer)
           .then(addedIcons => {
             mapAssetsStore.update(store => {
               return Object.keys(store).reduce((acc, k) => {
