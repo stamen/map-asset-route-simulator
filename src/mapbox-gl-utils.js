@@ -1,4 +1,5 @@
 import mapboxgl from 'mapbox-gl';
+import maplibregl from 'maplibre-gl';
 import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
@@ -138,6 +139,7 @@ export const addRouteLine = map => {
 
 export const updateRouteLine = (
   map,
+  mapRenderer,
   route,
   options = { fitToBounds: true }
 ) => {
@@ -197,8 +199,10 @@ export const updateRouteLine = (
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 
+  const renderer = mapRenderer === 'maplibre-gl' ? maplibregl : mapboxgl;
+
   if (fitToBounds) {
-    const bounds = new mapboxgl.LngLatBounds(
+    const bounds = new renderer.LngLatBounds(
       coordinates[0],
       coordinates[coordinates.length - 1]
     );

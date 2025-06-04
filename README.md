@@ -55,6 +55,10 @@ Here, you can customize the following options:
     - `pitch`: The pitch of the map
     - `zoom`: The zoom of the map
 - `directionsApiCall`: An async function that calls a routing/directions API with an argument of lng/lat points. The app will call the Mapbox Directions API by default using your Mapbox token, but you may instead use a preferred API. Your function **must** return the specified format for the API response (see section in README).
+- `presetRoutes`: A list of preset routes to use in a dropdown. Each route object requires the following keys:
+  - `id`: a unique id
+  - `name`: a display name
+  - `route`: an array of locations (this is copied from the app in the appropriate format with the "Copy route" button)
 
 For more details on how these should look, see the example in [`src/config/local.example.js`](./src/config/local.example.js).
 

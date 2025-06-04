@@ -97,7 +97,7 @@
           loading: true,
           helperText: 'Loading assets',
         });
-        addFigmaImages(map)
+        addFigmaImages(map, mapRenderer)
           .then(addedIcons => {
             mapAssetsStore.update(store => {
               return Object.keys(store).reduce((acc, k) => {
@@ -116,7 +116,7 @@
             console.error(err);
           });
         addRouteLine(map);
-        updateRouteLine(map, directionsApiResponse);
+        updateRouteLine(map, mapRenderer, directionsApiResponse);
       };
 
       waitForStyleUpdate(map, callback);
@@ -153,7 +153,7 @@
         map.setStyle(url);
         const callback = () => {
           addRouteLine(map);
-          updateRouteLine(map, directionsApiResponse, {
+          updateRouteLine(map, mapRenderer, directionsApiResponse, {
             fitToBounds: false,
           });
           if (destinationPinLayer && !map.getLayer(DESTINATION_PIN)) {
@@ -234,11 +234,15 @@
   }
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
-    updateRouteLine(map, directionsApiResponse, { fitToBounds: true });
+    updateRouteLine(map, mapRenderer, directionsApiResponse, {
+      fitToBounds: true,
+    });
   }
 
   $: if (map && map.isStyleLoaded() && routeLineBuffer) {
-    updateRouteLine(map, directionsApiResponse, { fitToBounds: false });
+    updateRouteLine(map, mapRenderer, directionsApiResponse, {
+      fitToBounds: false,
+    });
   }
 </script>
 
