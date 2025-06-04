@@ -16,7 +16,6 @@
 
   routeLineBufferStore.subscribe(value => {
     routeLineBuffer = value;
-    console.log(routeLineBuffer);
     checked = routeLineBuffer.state;
     padding = routeLineBuffer.padding;
     layerNames = routeLineBuffer.layers;

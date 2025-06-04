@@ -6,6 +6,7 @@ const round = (n, digits) => {
 const jsonKeys = [
   'locations',
   'routeLines',
+  'routeLineBuffer',
   'deviceSize',
   'routingOptions',
   'speedOptions',

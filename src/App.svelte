@@ -14,6 +14,7 @@
     deviceSize as deviceSizeStore,
     map as mapStore,
     routingOptions as routingOptionsStore,
+    routeLineBuffer as routeLineBufferStore,
   } from './stores';
   import { makeConfig } from './make-config';
   import { writeHash } from './query';
@@ -118,6 +119,15 @@
     }
   });
 
+  let routeLineBuffer = null;
+  routeLineBufferStore.subscribe(v => {
+    if (!!v.state) {
+      routeLineBuffer = v;
+    } else {
+      routeLineBuffer = null;
+    }
+  });
+
   let styleUrl = null;
   mapStyleStore.subscribe(value => {
     styleUrl = !!value ? value : null;
@@ -141,7 +151,8 @@
       durationMultiplier ||
       routingOptions ||
       speedOptions ||
-      maneuverOptions
+      maneuverOptions ||
+      routeLineBuffer
     ) {
       writeHash({
         locations,
@@ -152,6 +163,7 @@
         routingOptions,
         speedOptions,
         maneuverOptions,
+        routeLineBuffer,
         ...mapState,
       });
     }
