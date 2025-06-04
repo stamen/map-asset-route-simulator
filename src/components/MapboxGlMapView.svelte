@@ -238,7 +238,7 @@
   }
 
   $: if (map && map.isStyleLoaded() && routeLineBuffer) {
-    updateRouteLine(map, directionsApiResponse);
+    updateRouteLine(map, directionsApiResponse, { fitToBounds: false });
   }
 </script>
 
