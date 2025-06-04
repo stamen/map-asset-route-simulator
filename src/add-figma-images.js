@@ -7,7 +7,7 @@ configStore.subscribe(value => ({ figmaLink } = value));
 
 // Takes a map object and adds any valid Figma images referenced in the config to the map
 // Returns an array of all images that have been added
-const addFigmaImages = async map => {
+const addFigmaImages = async (map, mapRenderer) => {
   if (!figmaLink) return new Promise([]);
   // TODO make keys optional, don't need to provide both or any icons if they don't want
   let args = {
@@ -58,12 +58,22 @@ const addFigmaImages = async map => {
         const scaleKey = Object.keys(v).find(k => k.includes('@'));
         const url = v[scaleKey];
 
-        map.loadImage(url, (error, image) => {
-          if (error) reject(error);
+        if (mapRenderer === 'maplibre-gl') {
+          map
+            .loadImage(url)
+            .then(({ data }) => {
+              map.addImage(name, data);
+              resolve({ name, url, width: data.width, height: data.height });
+            })
+            .catch(err => reject(err));
+        } else {
+          map.loadImage(url, (error, image) => {
+            if (error) reject(error);
 
-          map.addImage(name, image);
-          resolve({ name, url, width: image.width, height: image.height });
-        });
+            map.addImage(name, image);
+            resolve({ name, url, width: image.width, height: image.height });
+          });
+        }
       });
     })
   );
