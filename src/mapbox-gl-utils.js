@@ -3,15 +3,20 @@ import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
   routeLineLayer as routeLineLayerStore,
+  routeLineBuffer as routeLineBufferStore,
 } from './stores';
 import {
   PUCK,
   ROUTE_LINE_SOURCE_ID,
   ROUTE_LINE_LAYER_ID_PREFIX,
 } from './constants';
+import * as turf from '@turf/turf';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
+
+let routeLineBuffer = null;
+routeLineBufferStore.subscribe(v => (routeLineBuffer = v));
 
 let routeLineLayers;
 routeLineLayerStore.subscribe(value => (routeLineLayers = value));
@@ -145,6 +150,19 @@ export const updateRouteLine = (
       coordinates: coordinates,
     },
   };
+
+  // if buffer, we want to add buffer to relevant layers
+  if (routeLineBuffer && !!routeLineBuffer?.state) {
+    const { padding, layers } = routeLineBuffer;
+    const polygonBuffer = turf.buffer(highResGeom, padding, {
+      units: 'meters',
+    });
+    for (const layerId of layers) {
+      const withinExp = ['case', ['within', polygonBuffer], 1, 0];
+      map.setPaintProperty(layerId, 'icon-opacity', withinExp);
+      map.setPaintProperty(layerId, 'text-opacity', withinExp);
+    }
+  }
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 

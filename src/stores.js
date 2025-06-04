@@ -85,4 +85,11 @@ let initialRoutingOptions = Object.keys(hashObj).reduce((acc, key) => {
   }
   return acc;
 }, {});
+
 export const routingOptions = writable(initialRoutingOptions);
+
+export const routeLineBuffer = writable({
+  state: true,
+  padding: 150,
+  layers: ['poi-label'],
+});
