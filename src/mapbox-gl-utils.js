@@ -161,10 +161,8 @@ export const updateRouteLine = (
     });
 
     let stylesheet = map.getStyle();
-    // const withinExp = ['case', ['within', polygonBuffer], 1, 0];
     const withinExp = ['case', ['within', polygonBuffer], true, false];
 
-    // TODO needs more nuance
     const nextLayers = stylesheet.layers.map(l => {
       // Delete the previous expression
       if (!!l?.metadata?.routeLineBufferOriginalFilter) {
