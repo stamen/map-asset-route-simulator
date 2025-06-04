@@ -154,28 +154,43 @@ export const updateRouteLine = (
   };
 
   // if buffer, we want to add buffer to relevant layers
-  if (routeLineBuffer && !!routeLineBuffer?.state) {
+  if (routeLineBuffer) {
     const { padding, layers } = routeLineBuffer;
     const polygonBuffer = turf.buffer(highResGeom, padding, {
       units: 'meters',
     });
 
     let stylesheet = map.getStyle();
-    const withinExp = ['case', ['within', polygonBuffer], 1, 0];
+    // const withinExp = ['case', ['within', polygonBuffer], 1, 0];
+    const withinExp = ['case', ['within', polygonBuffer], true, false];
+
     // TODO needs more nuance
     const nextLayers = stylesheet.layers.map(l => {
       // Delete the previous expression
-      if (!!l?.metadata?.routeLineBuffer) {
-        delete l.paint['icon-opacity'];
-        delete l.paint['text-opacity'];
+      if (!!l?.metadata?.routeLineBufferOriginalFilter) {
+        l.filter = l?.metadata?.routeLineBufferOriginalFilter;
+        delete l?.metadata?.routeLineBufferOriginalFilter;
       }
 
-      // Add to new relevant layers
-      if (layers.includes(l.id)) {
-        l.paint['icon-opacity'] = withinExp;
-        l.paint['text-opacity'] = withinExp;
-        l.metadata.routeLineBuffer = true;
+      if (!!routeLineBuffer?.state) {
+        let existingFilter = l?.filter;
+        if (existingFilter && existingFilter[0] !== 'all') {
+          existingFilter = ['all', existingFilter];
+        }
+
+        if (!existingFilter) {
+          existingFilter = ['all'];
+        }
+
+        existingFilter = existingFilter.concat([withinExp]);
+
+        // Add to new relevant layers
+        if (layers.includes(l.id)) {
+          l.metadata.routeLineBufferOriginalFilter = l.filter;
+          l.filter = existingFilter;
+        }
       }
+
       return l;
     });
     stylesheet = { ...stylesheet, layers: nextLayers };
