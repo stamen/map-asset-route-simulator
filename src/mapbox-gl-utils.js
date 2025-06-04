@@ -1,5 +1,5 @@
 import mapboxgl from 'mapbox-gl';
-import maplibregl from 'maplibre-gl';
+import maplibregl from './maplibre-gl';
 import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
