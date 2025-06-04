@@ -3,7 +3,7 @@ import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
   routeLineLayer as routeLineLayerStore,
-  routeLineBuffer as routeLineBufferStore,
+  mapStyle as mapStyleStore,
 } from './stores';
 import {
   PUCK,
@@ -15,8 +15,10 @@ import * as turf from '@turf/turf';
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
 
-let routeLineBuffer = null;
-routeLineBufferStore.subscribe(v => (routeLineBuffer = v));
+let routeLineBuffer;
+mapStyleStore.subscribe(value => {
+  routeLineBuffer = value?.routeLineBuffer;
+});
 
 let routeLineLayers;
 routeLineLayerStore.subscribe(value => (routeLineLayers = value));

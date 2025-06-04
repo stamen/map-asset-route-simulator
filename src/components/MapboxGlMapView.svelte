@@ -6,6 +6,7 @@
     mapState as mapStateStore,
     map as mapStore,
     mapAssets as mapAssetsStore,
+    mapStyle as mapStyleStore,
     routeLineLayer as routeLineLayerStore,
     fullScreenLoading as fullScreenLoadingStore,
   } from '../stores';
@@ -29,6 +30,12 @@
   export let mapRenderer;
 
   let renderer;
+
+  let routeLineBuffer;
+
+  mapStyleStore.subscribe(value => {
+    routeLineBuffer = value?.routeLineBuffer;
+  });
 
   let mapboxGlAccessToken;
   configStore.subscribe(value => ({ mapboxGlAccessToken } = value));
@@ -228,6 +235,10 @@
 
   $: if (map && map.isStyleLoaded() && directionsApiResponse) {
     updateRouteLine(map, directionsApiResponse, { fitToBounds: true });
+  }
+
+  $: if (map && map.isStyleLoaded() && routeLineBuffer) {
+    updateRouteLine(map, directionsApiResponse);
   }
 </script>
 

@@ -1,27 +1,28 @@
 <script>
-  import {
-    routeLineBuffer as routeLineBufferStore,
-    map as mapStore,
-  } from '../stores';
+  import { mapStyle as mapStyleStore, map as mapStore } from '../stores';
   import { Checkbox, NumberInput, TextInput } from 'carbon-components-svelte';
-  import { addRouteLine } from '../mapbox-gl-utils';
-  import { ROUTE_LINE_LAYER_ID_PREFIX } from '../constants';
 
   let routeLineBuffer;
+  let mapStyle;
   let map;
 
   let checked;
   let padding;
   let layerNames;
 
-  routeLineBufferStore.subscribe(value => {
-    routeLineBuffer = value;
-    checked = routeLineBuffer.state;
-    padding = routeLineBuffer.padding;
-    layerNames = routeLineBuffer.layers;
+  mapStore.subscribe(v => (map = v));
+  mapStyleStore.subscribe(value => {
+    mapStyle = value;
+    routeLineBuffer = mapStyle?.routeLineBuffer;
+    checked = routeLineBuffer?.state;
+    padding = routeLineBuffer?.padding;
+    layerNames = routeLineBuffer?.layers;
   });
 
-  mapStore.subscribe(value => (map = value));
+  $: if (!!checked && !layerNames && padding === undefined) {
+    layerNames = [''];
+    padding = 0;
+  }
 
   const addLayer = () => (layerNames = layerNames.concat(['']));
 
@@ -35,7 +36,11 @@
       valid = valid && !!map.getLayer(v);
       return valid;
     });
-    routeLineBufferStore.set({ state: checked, padding, layers: layerNames });
+    mapStyleStore.update(v => {
+      const next = { ...v };
+      next.routeLineBuffer = { state: checked, padding, layers: layerNames };
+      return next;
+    });
   };
 </script>
 
