@@ -159,11 +159,27 @@ export const updateRouteLine = (
     const polygonBuffer = turf.buffer(highResGeom, padding, {
       units: 'meters',
     });
-    for (const layerId of layers) {
-      const withinExp = ['case', ['within', polygonBuffer], 1, 0];
-      map.setPaintProperty(layerId, 'icon-opacity', withinExp);
-      map.setPaintProperty(layerId, 'text-opacity', withinExp);
-    }
+
+    let stylesheet = map.getStyle();
+    const withinExp = ['case', ['within', polygonBuffer], 1, 0];
+    // TODO needs more nuance
+    const nextLayers = stylesheet.layers.map(l => {
+      // Delete the previous expression
+      if (!!l?.metadata?.routeLineBuffer) {
+        delete l.paint['icon-opacity'];
+        delete l.paint['text-opacity'];
+      }
+
+      // Add to new relevant layers
+      if (layers.includes(l.id)) {
+        l.paint['icon-opacity'] = withinExp;
+        l.paint['text-opacity'] = withinExp;
+        l.metadata.routeLineBuffer = true;
+      }
+      return l;
+    });
+    stylesheet = { ...stylesheet, layers: nextLayers };
+    map.setStyle(stylesheet);
   }
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
