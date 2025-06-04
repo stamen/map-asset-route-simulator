@@ -123,6 +123,8 @@
   routeLineBufferStore.subscribe(v => {
     if (!!v.state) {
       routeLineBuffer = v;
+    } else if (!!config?.routeLineBuffer) {
+      routeLineBuffer = config.routeLineBuffer;
     } else {
       routeLineBuffer = null;
     }
