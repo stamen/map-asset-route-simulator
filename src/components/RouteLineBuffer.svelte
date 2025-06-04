@@ -163,6 +163,7 @@
       {#each layerNames as layerId, i}
         <div class="text-input-container">
           <TextInput
+            labelText={i === 0 ? "Layer ID's" : null}
             on:input={e => onInputLayerName(e.detail, i)}
             value={layerId}
           />
@@ -211,11 +212,15 @@
 
   .text-input-container {
     display: flex;
-    align-items: center;
+    align-items: end;
   }
 
   .action-button {
     padding: 6px;
     margin-left: 3px;
+  }
+
+  :global(.bx--text-input__field-wrapper input) {
+    height: 32px;
   }
 </style>
