@@ -186,6 +186,9 @@ export const updateRouteLine = (
 
         // Add to new relevant layers
         if (layers.includes(l.id)) {
+          if (!l.metadata) {
+            l.metadata = {};
+          }
           l.metadata.routeLineBufferOriginalFilter = l.filter;
           l.filter = existingFilter;
         }
