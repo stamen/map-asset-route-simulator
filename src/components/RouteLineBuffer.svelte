@@ -1,17 +1,15 @@
 <script>
-  import {
-    mapStyle as mapStyleStore,
-    map as mapStore,
-    route as routeStore,
-  } from '../stores';
+  import { mapStyle as mapStyleStore, map as mapStore } from '../stores';
   import { Checkbox, NumberInput, TextInput } from 'carbon-components-svelte';
   import { faTrash } from '@fortawesome/free-solid-svg-icons';
   import Fa from 'svelte-fa/src/fa.svelte';
   import * as turf from '@turf/turf';
   import { Dropdown } from 'carbon-components-svelte';
 
-  let routeLineBuffer;
-  let mapStyle;
+  export let routeLineBuffer;
+  export let directionsApiResponse;
+  export let index;
+
   let map;
 
   let checked;
@@ -44,9 +42,7 @@
       })
     : !!checked;
 
-  let directionsApiResponse;
   let buffer;
-  routeStore.subscribe(value => ({ response: directionsApiResponse } = value));
 
   $: if (checked && padding !== undefined && directionsApiResponse) {
     const { coordinates } = directionsApiResponse;
@@ -65,13 +61,12 @@
   }
 
   mapStore.subscribe(v => (map = v));
-  mapStyleStore.subscribe(value => {
-    mapStyle = value;
-    routeLineBuffer = mapStyle?.routeLineBuffer;
+
+  $: if (routeLineBuffer) {
     checked = routeLineBuffer?.state;
     padding = routeLineBuffer?.padding;
     layerNames = routeLineBuffer?.layers;
-  });
+  }
 
   $: if (!!checked && !layerNames && padding === undefined) {
     layerNames = [''];
@@ -98,12 +93,18 @@
 
     mapStyleStore.update(v => {
       const next = { ...v };
-      next.routeLineBuffer = {
-        state: checked,
-        padding,
-        layers: layerNames,
-        type: includeExclude,
-      };
+
+      next.routeLineBuffer = next.routeLineBuffer.map((v, i) =>
+        i === index
+          ? {
+              state: checked,
+              padding,
+              layers: layerNames,
+              type: includeExclude,
+            }
+          : v
+      );
+
       return next;
     });
   };

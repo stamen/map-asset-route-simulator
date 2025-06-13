@@ -3,7 +3,7 @@
   import Directions from './Directions.svelte';
   import Moments from './Moments.svelte';
   import RouteLines from './RouteLines.svelte';
-  import RouteLineBuffer from './RouteLineBuffer.svelte';
+  import RouteLineBufferWrapper from './RouteLineBufferWrapper.svelte';
   import CameraBehaviorModal from './CameraBehaviorModal.svelte';
   import FigmaLinkModal from './FigmaLinkModal.svelte';
 
@@ -22,7 +22,7 @@
       <div class="control"><RouteLines /></div>
     </AccordionItem>
     <AccordionItem title="Route-line buffer:" open>
-      <div class="control"><RouteLineBuffer /></div>
+      <div class="control"><RouteLineBufferWrapper /></div>
     </AccordionItem>
     <AccordionItem title="Camera behavior:" open>
       <div class="control"><CameraBehaviorModal /></div>

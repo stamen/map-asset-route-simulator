@@ -157,48 +157,50 @@ export const updateRouteLine = (
 
   // if buffer, we want to add buffer to relevant layers
   if (routeLineBuffer) {
-    const { padding, layers, type } = routeLineBuffer;
-    const polygonBuffer = turf.buffer(highResGeom, padding, {
-      units: 'meters',
-    });
+    for (const buffer of routeLineBuffer) {
+      const { padding, layers, type } = buffer;
+      const polygonBuffer = turf.buffer(highResGeom, padding, {
+        units: 'meters',
+      });
 
-    let stylesheet = map.getStyle();
-    const setting = type === 'include' ? [true, false] : [false, true];
-    const withinExp = ['case', ['within', polygonBuffer], ...setting];
+      let stylesheet = map.getStyle();
+      const setting = type === 'include' ? [true, false] : [false, true];
+      const withinExp = ['case', ['within', polygonBuffer], ...setting];
 
-    const nextLayers = stylesheet.layers.map(l => {
-      // Delete the previous expression
-      if (!!l?.metadata?.routeLineBufferOriginalFilter) {
-        l.filter = l?.metadata?.routeLineBufferOriginalFilter;
-        delete l?.metadata?.routeLineBufferOriginalFilter;
-      }
-
-      if (!!routeLineBuffer?.state) {
-        let existingFilter = l?.filter;
-        if (existingFilter && existingFilter[0] !== 'all') {
-          existingFilter = ['all', existingFilter];
+      const nextLayers = stylesheet.layers.map(l => {
+        // Delete the previous expression
+        if (!!l?.metadata?.routeLineBufferOriginalFilter) {
+          l.filter = l?.metadata?.routeLineBufferOriginalFilter;
+          delete l?.metadata?.routeLineBufferOriginalFilter;
         }
 
-        if (!existingFilter) {
-          existingFilter = ['all'];
-        }
-
-        existingFilter = existingFilter.concat([withinExp]);
-
-        // Add to new relevant layers
-        if (layers.includes(l.id)) {
-          if (!l.metadata) {
-            l.metadata = {};
+        if (!!routeLineBuffer?.state) {
+          let existingFilter = l?.filter;
+          if (existingFilter && existingFilter[0] !== 'all') {
+            existingFilter = ['all', existingFilter];
           }
-          l.metadata.routeLineBufferOriginalFilter = l.filter;
-          l.filter = existingFilter;
-        }
-      }
 
-      return l;
-    });
-    stylesheet = { ...stylesheet, layers: nextLayers };
-    map.setStyle(stylesheet);
+          if (!existingFilter) {
+            existingFilter = ['all'];
+          }
+
+          existingFilter = existingFilter.concat([withinExp]);
+
+          // Add to new relevant layers
+          if (layers.includes(l.id)) {
+            if (!l.metadata) {
+              l.metadata = {};
+            }
+            l.metadata.routeLineBufferOriginalFilter = l.filter;
+            l.filter = existingFilter;
+          }
+        }
+
+        return l;
+      });
+      stylesheet = { ...stylesheet, layers: nextLayers };
+      map.setStyle(stylesheet);
+    }
   }
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
