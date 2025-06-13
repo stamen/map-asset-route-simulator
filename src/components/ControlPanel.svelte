@@ -17,6 +17,7 @@
       <div class="control"><Directions {setRouteFlag} {routeFlag} /></div>
       <div class="control mt24"><Moments {setRouteFlag} {routeFlag} /></div>
     </AccordionItem>
+    <!-- TODO We should add a wrapper control for multiple-->
     <AccordionItem title="Route-line:" open>
       <div class="control"><RouteLines /></div>
     </AccordionItem>

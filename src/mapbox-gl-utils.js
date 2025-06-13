@@ -157,13 +157,14 @@ export const updateRouteLine = (
 
   // if buffer, we want to add buffer to relevant layers
   if (routeLineBuffer) {
-    const { padding, layers } = routeLineBuffer;
+    const { padding, layers, type } = routeLineBuffer;
     const polygonBuffer = turf.buffer(highResGeom, padding, {
       units: 'meters',
     });
 
     let stylesheet = map.getStyle();
-    const withinExp = ['case', ['within', polygonBuffer], true, false];
+    const setting = type === 'include' ? [true, false] : [false, true];
+    const withinExp = ['case', ['within', polygonBuffer], ...setting];
 
     const nextLayers = stylesheet.layers.map(l => {
       // Delete the previous expression

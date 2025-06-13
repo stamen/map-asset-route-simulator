@@ -8,6 +8,7 @@
   import { faTrash } from '@fortawesome/free-solid-svg-icons';
   import Fa from 'svelte-fa/src/fa.svelte';
   import * as turf from '@turf/turf';
+  import { Dropdown } from 'carbon-components-svelte';
 
   let routeLineBuffer;
   let mapStyle;
@@ -16,6 +17,7 @@
   let checked;
   let padding;
   let layerNames;
+  let includeExclude = 'include';
 
   let focusedPadding = false;
 
@@ -23,6 +25,9 @@
     ? !Object.entries(routeLineBuffer).every(([k, v]) => {
         let same = false;
 
+        if (k === 'type') {
+          same = v === includeExclude;
+        }
         if (k === 'state') {
           same = v === checked;
         }
@@ -93,7 +98,12 @@
 
     mapStyleStore.update(v => {
       const next = { ...v };
-      next.routeLineBuffer = { state: checked, padding, layers: layerNames };
+      next.routeLineBuffer = {
+        state: checked,
+        padding,
+        layers: layerNames,
+        type: includeExclude,
+      };
       return next;
     });
   };
@@ -159,6 +169,15 @@
         on:input={e => (padding = e.detail)}
         on:focus={onFocus}
         on:blur={onBlur}
+      />
+      <Dropdown
+        titleText="Include/exclude"
+        selectedId={includeExclude}
+        items={[
+          { id: 'include', text: 'Include' },
+          { id: 'exclude', text: 'Exclude' },
+        ]}
+        on:select={e => (includeExclude = e.detail.selectedId)}
       />
       {#each layerNames as layerId, i}
         <div class="text-input-container">
