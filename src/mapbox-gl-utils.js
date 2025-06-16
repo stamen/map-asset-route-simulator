@@ -157,24 +157,30 @@ export const updateRouteLine = (
 
   // if buffer, we want to add buffer to relevant layers
   if (routeLineBuffer) {
+    let updatedLayers = [];
+    let stylesheet = map.getStyle();
+
     for (const buffer of routeLineBuffer) {
       const { padding, layers, type } = buffer;
       const polygonBuffer = turf.buffer(highResGeom, padding, {
         units: 'meters',
       });
 
-      let stylesheet = map.getStyle();
       const setting = type === 'include' ? [true, false] : [false, true];
       const withinExp = ['case', ['within', polygonBuffer], ...setting];
 
-      const nextLayers = stylesheet.layers.map(l => {
+      // ------------------------------------------------------------------------
+
+      const nextLayers = layers.map(layer => {
+        const l = stylesheet.layers.find(v => v.id === layer);
+
         // Delete the previous expression
         if (!!l?.metadata?.routeLineBufferOriginalFilter) {
           l.filter = l?.metadata?.routeLineBufferOriginalFilter;
           delete l?.metadata?.routeLineBufferOriginalFilter;
         }
 
-        if (!!routeLineBuffer?.state) {
+        if (!!buffer?.state) {
           let existingFilter = l?.filter;
           if (existingFilter && existingFilter[0] !== 'all') {
             existingFilter = ['all', existingFilter];
@@ -198,9 +204,20 @@ export const updateRouteLine = (
 
         return l;
       });
-      stylesheet = { ...stylesheet, layers: nextLayers };
-      map.setStyle(stylesheet);
+
+      updatedLayers = updatedLayers.concat(nextLayers);
     }
+
+    stylesheet = {
+      ...stylesheet,
+      layers: stylesheet.layers.map(l => {
+        const updatedLayer = updatedLayers.find(v => v.id === l.id);
+        if (updatedLayer) return updatedLayer;
+        return l;
+      }),
+    };
+
+    map.setStyle(stylesheet);
   }
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);

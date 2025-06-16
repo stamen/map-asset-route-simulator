@@ -1,10 +1,6 @@
 <script>
   import RouteLineBuffer from './RouteLineBuffer.svelte';
-  import {
-    mapStyle as mapStyleStore,
-    map as mapStore,
-    route as routeStore,
-  } from '../stores';
+  import { mapStyle as mapStyleStore, route as routeStore } from '../stores';
 
   let mapStyle;
   let routeLineBuffers = [];
@@ -19,9 +15,11 @@
 </script>
 
 <div class="RouteLineBufferWrapper">
-  {#each routeLineBuffers as routeLineBuffer, index}
-    <RouteLineBuffer {routeLineBuffer} {directionsApiResponse} {index} />
-  {/each}
+  {#if routeLineBuffers}
+    {#each routeLineBuffers as routeLineBuffer, index}
+      <RouteLineBuffer {routeLineBuffer} {directionsApiResponse} {index} />
+    {/each}
+  {/if}
 </div>
 
 <style>
