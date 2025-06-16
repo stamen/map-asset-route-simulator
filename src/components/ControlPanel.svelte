@@ -19,7 +19,7 @@
     </AccordionItem>
     <!-- TODO We should add a wrapper control for multiple-->
     <AccordionItem title="Route-line:" open>
-      <div class="control"><RouteLines /></div>
+      <!-- <div class="control"><RouteLines /></div> -->
     </AccordionItem>
     <AccordionItem title="Route-line buffer:" open>
       <div class="control"><RouteLineBufferWrapper /></div>

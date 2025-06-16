@@ -169,8 +169,6 @@ export const updateRouteLine = (
       const setting = type === 'include' ? [true, false] : [false, true];
       const withinExp = ['case', ['within', polygonBuffer], ...setting];
 
-      // ------------------------------------------------------------------------
-
       const nextLayers = layers.map(layer => {
         const l = stylesheet.layers.find(v => v.id === layer);
 
@@ -180,26 +178,24 @@ export const updateRouteLine = (
           delete l?.metadata?.routeLineBufferOriginalFilter;
         }
 
-        if (!!buffer?.state) {
-          let existingFilter = l?.filter;
-          if (existingFilter && existingFilter[0] !== 'all') {
-            existingFilter = ['all', existingFilter];
-          }
+        let existingFilter = l?.filter;
+        if (existingFilter && existingFilter[0] !== 'all') {
+          existingFilter = ['all', existingFilter];
+        }
 
-          if (!existingFilter) {
-            existingFilter = ['all'];
-          }
+        if (!existingFilter) {
+          existingFilter = ['all'];
+        }
 
-          existingFilter = existingFilter.concat([withinExp]);
+        existingFilter = existingFilter.concat([withinExp]);
 
-          // Add to new relevant layers
-          if (layers.includes(l.id)) {
-            if (!l.metadata) {
-              l.metadata = {};
-            }
-            l.metadata.routeLineBufferOriginalFilter = l.filter;
-            l.filter = existingFilter;
+        // Add to new relevant layers
+        if (layers.includes(l.id)) {
+          if (!l.metadata) {
+            l.metadata = {};
           }
+          l.metadata.routeLineBufferOriginalFilter = l.filter;
+          l.filter = existingFilter;
         }
 
         return l;
