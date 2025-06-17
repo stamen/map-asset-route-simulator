@@ -221,13 +221,21 @@ export const updateRouteLine = (
   const renderer = mapRenderer === 'maplibre-gl' ? maplibregl : mapboxgl;
 
   if (fitToBounds) {
-    const bounds = new renderer.LngLatBounds(
+    let bounds = new renderer.LngLatBounds(
       coordinates[0],
       coordinates[coordinates.length - 1]
     );
 
     for (const coord of coordinates) {
       bounds.extend(coord);
+    }
+
+    if (mapRenderer === 'maplibre-gl') {
+      const { _sw, _ne } = bounds;
+      bounds = [
+        [_sw.lng, _sw.lat],
+        [_ne.lng, _ne.lat],
+      ];
     }
 
     map.setPitch(0);
