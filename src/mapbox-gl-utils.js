@@ -1,5 +1,5 @@
 import mapboxgl from 'mapbox-gl';
-import maplibregl from './maplibre-gl';
+import maplibregl from 'maplibre-gl';
 import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
@@ -157,22 +157,27 @@ export const updateRouteLine = (
 
   // if buffer, we want to add buffer to relevant layers
   if (routeLineBuffer) {
-    const { padding, layers } = routeLineBuffer;
-    const polygonBuffer = turf.buffer(highResGeom, padding, {
-      units: 'meters',
-    });
-
+    let updatedLayers = [];
     let stylesheet = map.getStyle();
-    const withinExp = ['case', ['within', polygonBuffer], true, false];
 
-    const nextLayers = stylesheet.layers.map(l => {
-      // Delete the previous expression
-      if (!!l?.metadata?.routeLineBufferOriginalFilter) {
-        l.filter = l?.metadata?.routeLineBufferOriginalFilter;
-        delete l?.metadata?.routeLineBufferOriginalFilter;
-      }
+    for (const buffer of routeLineBuffer) {
+      const { padding, layers, type } = buffer;
+      const polygonBuffer = turf.buffer(highResGeom, padding, {
+        units: 'meters',
+      });
 
-      if (!!routeLineBuffer?.state) {
+      const setting = type === 'include' ? [true, false] : [false, true];
+      const withinExp = ['case', ['within', polygonBuffer], ...setting];
+
+      const nextLayers = layers.map(layer => {
+        const l = stylesheet.layers.find(v => v.id === layer);
+
+        // Delete the previous expression
+        if (!!l?.metadata?.routeLineBufferOriginalFilter) {
+          l.filter = l?.metadata?.routeLineBufferOriginalFilter;
+          delete l?.metadata?.routeLineBufferOriginalFilter;
+        }
+
         let existingFilter = l?.filter;
         if (existingFilter && existingFilter[0] !== 'all') {
           existingFilter = ['all', existingFilter];
@@ -192,11 +197,22 @@ export const updateRouteLine = (
           l.metadata.routeLineBufferOriginalFilter = l.filter;
           l.filter = existingFilter;
         }
-      }
 
-      return l;
-    });
-    stylesheet = { ...stylesheet, layers: nextLayers };
+        return l;
+      });
+
+      updatedLayers = updatedLayers.concat(nextLayers);
+    }
+
+    stylesheet = {
+      ...stylesheet,
+      layers: stylesheet.layers.map(l => {
+        const updatedLayer = updatedLayers.find(v => v.id === l.id);
+        if (updatedLayer) return updatedLayer;
+        return l;
+      }),
+    };
+
     map.setStyle(stylesheet);
   }
 

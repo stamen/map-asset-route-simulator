@@ -1,21 +1,22 @@
 <script>
-  import {
-    mapStyle as mapStyleStore,
-    map as mapStore,
-    route as routeStore,
-  } from '../stores';
+  import { mapStyle as mapStyleStore, map as mapStore } from '../stores';
   import { Checkbox, NumberInput, TextInput } from 'carbon-components-svelte';
   import { faTrash } from '@fortawesome/free-solid-svg-icons';
   import Fa from 'svelte-fa/src/fa.svelte';
   import * as turf from '@turf/turf';
+  import { Dropdown } from 'carbon-components-svelte';
 
-  let routeLineBuffer;
-  let mapStyle;
+  export let routeLineBuffer;
+  export let directionsApiResponse;
+  export let index;
+  export let onChange;
+  export let removeBuffer;
+
   let map;
 
-  let checked;
   let padding;
   let layerNames;
+  let includeExclude = 'include';
 
   let focusedPadding = false;
 
@@ -23,8 +24,8 @@
     ? !Object.entries(routeLineBuffer).every(([k, v]) => {
         let same = false;
 
-        if (k === 'state') {
-          same = v === checked;
+        if (k === 'type') {
+          same = v === includeExclude;
         }
         if (k === 'padding') {
           same = v === padding;
@@ -37,13 +38,11 @@
 
         return same;
       })
-    : !!checked;
+    : true;
 
-  let directionsApiResponse;
   let buffer;
-  routeStore.subscribe(value => ({ response: directionsApiResponse } = value));
 
-  $: if (checked && padding !== undefined && directionsApiResponse) {
+  $: if (padding !== undefined && directionsApiResponse) {
     const { coordinates } = directionsApiResponse;
 
     const highResGeom = {
@@ -60,15 +59,13 @@
   }
 
   mapStore.subscribe(v => (map = v));
-  mapStyleStore.subscribe(value => {
-    mapStyle = value;
-    routeLineBuffer = mapStyle?.routeLineBuffer;
-    checked = routeLineBuffer?.state;
+
+  $: if (routeLineBuffer) {
     padding = routeLineBuffer?.padding;
     layerNames = routeLineBuffer?.layers;
-  });
+  }
 
-  $: if (!!checked && !layerNames && padding === undefined) {
+  $: if (!layerNames && padding === undefined) {
     layerNames = [''];
     padding = 10;
   }
@@ -83,20 +80,16 @@
     layerNames[index] = value;
   };
 
-  const onSubmit = () => {
-    layerNames = layerNames.filter(v => {
-      let valid = v !== '';
-      const layer = map.getLayer(v);
-      valid = valid && !!layer && layer.type === 'symbol';
-      return valid;
-    });
+  $: {
+    const nextBuffer = {
+      padding,
+      layers: layerNames,
+      type: includeExclude,
+      isUnsaved: isUnsaved,
+    };
 
-    mapStyleStore.update(v => {
-      const next = { ...v };
-      next.routeLineBuffer = { state: checked, padding, layers: layerNames };
-      return next;
-    });
-  };
+    onChange(nextBuffer, index);
+  }
 
   // Visualizer!
   const onFocus = () => {
@@ -146,54 +139,57 @@
   }
 </script>
 
-<div>
+<div class="RouteLineBuffer">
   <div class="container">
-    <Checkbox labelText="Add a buffer to the route line" bind:checked />
-    {#if checked}
-      <NumberInput
-        size="sm"
-        label={'Padding (meters)'}
-        value={padding}
-        min={0}
-        step={1}
-        on:input={e => (padding = e.detail)}
-        on:focus={onFocus}
-        on:blur={onBlur}
-      />
-      {#each layerNames as layerId, i}
-        <div class="text-input-container">
-          <TextInput
-            labelText={i === 0 ? "Layer ID's" : null}
-            on:input={e => onInputLayerName(e.detail, i)}
-            value={layerId}
-          />
-          <button class="action-button" on:click={() => removeLayer(i)}
-            ><Fa icon={faTrash} /></button
-          >
-        </div>
-      {/each}
-      <button class="primary-button" on:click={addLayer}
-        >Add another layer id</button
-      >
-    {/if}
-    <button class="primary-button" on:click={onSubmit}
-      >{#if isUnsaved}
-        <div class="unsaved" />
-      {/if}Submit</button
+    <NumberInput
+      size="sm"
+      label={'Padding (meters)'}
+      value={padding}
+      min={0}
+      step={1}
+      on:input={e => (padding = e.detail)}
+      on:focus={onFocus}
+      on:blur={onBlur}
+    />
+    <Dropdown
+      titleText="Include/exclude"
+      selectedId={includeExclude}
+      items={[
+        { id: 'include', text: 'Include' },
+        { id: 'exclude', text: 'Exclude' },
+      ]}
+      on:select={e => (includeExclude = e.detail.selectedId)}
+    />
+    {#each layerNames as layerId, i}
+      <div class="text-input-container">
+        <TextInput
+          labelText={i === 0 ? "Layer ID's" : null}
+          on:input={e => onInputLayerName(e.detail, i)}
+          value={layerId}
+        />
+        <button class="action-button" on:click={() => removeLayer(i)}
+          ><Fa icon={faTrash} /></button
+        >
+      </div>
+    {/each}
+    <button class="primary-button" on:click={addLayer}
+      >Add another layer id</button
+    >
+    <button class="primary-button" on:click={() => removeBuffer(index)}
+      >Remove buffer</button
     >
   </div>
 </div>
 
 <style>
-  .unsaved {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: red;
+  .RouteLineBuffer {
+    width: 240px;
+    border: 1px solid lightgray;
+    padding: 1rem;
   }
 
   .primary-button {
-    width: 240px;
+    width: 100%;
     height: 36px;
     display: flex;
     align-items: center;
@@ -206,7 +202,7 @@
     justify-content: center;
     flex-direction: column;
     gap: 12px;
-    width: 240px;
+    width: 100%;
     margin-bottom: 12px;
   }
 
