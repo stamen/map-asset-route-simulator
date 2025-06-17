@@ -4,15 +4,22 @@ import { validate } from '@mapbox/mapbox-gl-style-spec';
 import {
   mapAssets as mapAssetsStore,
   routeLineLayer as routeLineLayerStore,
+  mapStyle as mapStyleStore,
 } from './stores';
 import {
   PUCK,
   ROUTE_LINE_SOURCE_ID,
   ROUTE_LINE_LAYER_ID_PREFIX,
 } from './constants';
+import * as turf from '@turf/turf';
 
 let mapAssets = {};
 mapAssetsStore.subscribe(value => (mapAssets = value));
+
+let routeLineBuffer;
+mapStyleStore.subscribe(value => {
+  routeLineBuffer = value?.routeLineBuffer;
+});
 
 let routeLineLayers;
 routeLineLayerStore.subscribe(value => (routeLineLayers = value));
@@ -147,6 +154,67 @@ export const updateRouteLine = (
       coordinates: coordinates,
     },
   };
+
+  // if buffer, we want to add buffer to relevant layers
+  if (routeLineBuffer) {
+    let updatedLayers = [];
+    let stylesheet = map.getStyle();
+
+    for (const buffer of routeLineBuffer) {
+      const { padding, layers, type } = buffer;
+      const polygonBuffer = turf.buffer(highResGeom, padding, {
+        units: 'meters',
+      });
+
+      const setting = type === 'include' ? [true, false] : [false, true];
+      const withinExp = ['case', ['within', polygonBuffer], ...setting];
+
+      const nextLayers = layers.map(layer => {
+        const l = stylesheet.layers.find(v => v.id === layer);
+
+        // Delete the previous expression
+        if (!!l?.metadata?.routeLineBufferOriginalFilter) {
+          l.filter = l?.metadata?.routeLineBufferOriginalFilter;
+          delete l?.metadata?.routeLineBufferOriginalFilter;
+        }
+
+        let existingFilter = l?.filter;
+        if (existingFilter && existingFilter[0] !== 'all') {
+          existingFilter = ['all', existingFilter];
+        }
+
+        if (!existingFilter) {
+          existingFilter = ['all'];
+        }
+
+        existingFilter = existingFilter.concat([withinExp]);
+
+        // Add to new relevant layers
+        if (layers.includes(l.id)) {
+          if (!l.metadata) {
+            l.metadata = {};
+          }
+          l.metadata.routeLineBufferOriginalFilter = l.filter;
+          l.filter = existingFilter;
+        }
+
+        return l;
+      });
+
+      updatedLayers = updatedLayers.concat(nextLayers);
+    }
+
+    stylesheet = {
+      ...stylesheet,
+      layers: stylesheet.layers.map(l => {
+        const updatedLayer = updatedLayers.find(v => v.id === l.id);
+        if (updatedLayer) return updatedLayer;
+        return l;
+      }),
+    };
+
+    map.setStyle(stylesheet);
+  }
 
   map.getSource(ROUTE_LINE_SOURCE_ID).setData(highResGeom);
 

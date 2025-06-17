@@ -85,4 +85,5 @@ let initialRoutingOptions = Object.keys(hashObj).reduce((acc, key) => {
   }
   return acc;
 }, {});
+
 export const routingOptions = writable(initialRoutingOptions);
