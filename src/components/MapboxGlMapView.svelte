@@ -9,6 +9,8 @@
     mapStyle as mapStyleStore,
     routeLineLayer as routeLineLayerStore,
     fullScreenLoading as fullScreenLoadingStore,
+    focusedGeocoder as focusedGeocoderStore,
+    lastClickedLocation as lastClickedLocationStore,
   } from '../stores';
   import { onMount, onDestroy } from 'svelte';
   import { addFigmaImages } from '../add-figma-images';
@@ -76,6 +78,15 @@
     mapStateStore.set(nextMapState);
   }, 250);
 
+  focusedGeocoderStore.subscribe(value => {
+    if (!map) return;
+    if (value) {
+      map.getCanvas().style.cursor = 'crosshair';
+    } else {
+      map.getCanvas().style.cursor = 'pointer';
+    }
+  });
+
   onMount(async () => {
     await importRenderer();
     const glLibrary = renderer;
@@ -124,6 +135,12 @@
 
     map.on('move', () => {
       throttledSetMapState();
+    });
+
+    map.on('click', e => {
+      if ($focusedGeocoderStore) {
+        lastClickedLocationStore.set(e.lngLat);
+      }
     });
   });
 
