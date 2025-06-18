@@ -184,14 +184,13 @@
   };
 
   const onBlurInput = e => {
-    const clickedMap = [...(e?.relatedTarget?.classList ?? [])].includes(
-      'mapboxgl-canvas'
-    );
+    const classList = [...(e?.relatedTarget?.classList ?? [])];
+    const clickedMap =
+      classList.includes('mapboxgl-canvas') ||
+      classList.includes('maplibregl-canvas');
     // TODO See other note on clear geocoder: clicking the clear button focuses the input, so with the other hack
     // it will cause flashing if we don't prevent removing focus here
-    const clickedClear = [...(e?.relatedTarget?.classList ?? [])].includes(
-      'mapboxgl-ctrl-geocoder--button'
-    );
+    const clickedClear = classList.includes('mapboxgl-ctrl-geocoder--button');
     if (!clickedMap && !clickedClear) {
       $focusedGeocoderStore && focusedGeocoderStore.set(null);
     }
@@ -223,12 +222,10 @@
     [...inputs].forEach((input, i) => {
       input.value = geocoders[i].locationText;
       input.addEventListener('focusin', () => setFocusedClass(geocoders[i].id));
-      input.addEventListener(
-        'focus',
-        () =>
-          $focusedGeocoderStore !== geocoders[i].id &&
-          focusedGeocoderStore.set(geocoders[i].id)
-      );
+      input.addEventListener('focus', () => {
+        $focusedGeocoderStore !== geocoders[i].id &&
+          focusedGeocoderStore.set(geocoders[i].id);
+      });
       input.addEventListener('blur', e => onBlurInput(e));
     });
   };
