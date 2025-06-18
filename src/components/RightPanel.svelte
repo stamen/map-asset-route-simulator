@@ -107,11 +107,12 @@
     const { status, url } = next;
     if (status === '200') {
       setRenderOptions(url);
+
       // Custom map style obj
       const custom = {
         id: 'custom',
         name: 'Custom',
-        type: 'mapbox-gl',
+        type: selectedRenderer ? selectedRenderer : 'mapbox-gl',
         url,
       };
       style = custom;
