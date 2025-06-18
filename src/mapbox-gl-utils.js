@@ -10,6 +10,7 @@ import {
   PUCK,
   ROUTE_LINE_SOURCE_ID,
   ROUTE_LINE_LAYER_ID_PREFIX,
+  TEMPORARY_MARKER,
 } from './constants';
 import * as turf from '@turf/turf';
 
@@ -53,6 +54,42 @@ export const setPuckLocation = (map, point, bearing) => {
 
   if (map.getLayer(PUCK)) {
     map.setLayoutProperty(PUCK, 'icon-rotate', bearing);
+  }
+};
+
+export const setTemporaryMarker = (map, points) => {
+  const data = {
+    type: 'FeatureCollection',
+    features: points.map(p => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: p,
+      },
+    })),
+  };
+
+  const hasSource = map.getSource(TEMPORARY_MARKER);
+  if (!hasSource) {
+    map.addSource(TEMPORARY_MARKER, {
+      type: 'geojson',
+      data: data,
+    });
+  } else {
+    map.getSource(TEMPORARY_MARKER).setData(data);
+  }
+
+  const hasLayer = map.getLayer(TEMPORARY_MARKER);
+  if (!hasLayer) {
+    map.addLayer({
+      id: TEMPORARY_MARKER,
+      type: 'circle',
+      source: TEMPORARY_MARKER,
+      paint: {
+        'circle-color': 'red',
+        'circle-radius': 5,
+      },
+    });
   }
 };
 
@@ -102,8 +139,14 @@ export const setMarkerLayer = (map, point, markerId, layoutProperties) => {
 };
 
 export const removeMarkerLayer = (map, markerId) => {
-  map.removeLayer(markerId);
-  map.removeSource(markerId);
+  const hasLayer = map.getLayer(markerId);
+  if (hasLayer) {
+    map.removeLayer(markerId);
+  }
+  const hasSource = map.getSource(markerId);
+  if (hasSource) {
+    map.removeSource(markerId);
+  }
 };
 
 export const addRouteLine = map => {
