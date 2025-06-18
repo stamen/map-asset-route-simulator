@@ -1,6 +1,8 @@
 export const PUCK = 'puck';
 export const DESTINATION_PIN = 'destination-pin';
 
+export const TEMPORARY_MARKER = 'temporary-marker';
+
 export const MAP_ASSET_ICONS = [DESTINATION_PIN, PUCK];
 
 export const DEFAULT_GEOCODERS = [

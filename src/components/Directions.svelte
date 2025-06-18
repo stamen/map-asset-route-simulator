@@ -1,5 +1,6 @@
 <script>
   import { onMount, tick } from 'svelte';
+  import _ from 'lodash';
   import { faXmark } from '@fortawesome/free-solid-svg-icons';
   import { Dropdown } from 'carbon-components-svelte';
   import Fa from 'svelte-fa/src/fa.svelte';
@@ -7,14 +8,24 @@
   import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.min.js';
   import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
   import { fetchDirections } from '../fetch-directions';
-
   import {
     config as configStore,
     route as routeStore,
     map as mapStore,
+    focusedGeocoder as focusedGeocoderStore,
+    lastClickedLocation as lastClickedLocationStore,
   } from '../stores';
   import { navigateRoute } from '../navigate-route';
-  import { DEFAULT_GEOCODERS, ROUTE_LINE_SOURCE_ID } from '../constants';
+  import {
+    DEFAULT_GEOCODERS,
+    ROUTE_LINE_SOURCE_ID,
+    TEMPORARY_MARKER,
+  } from '../constants';
+  import {
+    setTemporaryMarker,
+    removeMarkerLayer,
+    waitForStyleUpdate,
+  } from '../mapbox-gl-utils';
 
   export let routeFlag;
   export let setRouteFlag;
@@ -31,15 +42,46 @@
   let selectedRoute = 'custom';
 
   let geocoders = DEFAULT_GEOCODERS;
+  let routeLocations = [];
 
   routeStore.subscribe(value => {
     if (value && value.hasOwnProperty('locations')) {
+      routeLocations = value.locations;
       geocoders = value.locations;
     }
   });
 
   let map;
   mapStore.subscribe(value => (map = value));
+
+  $: if (map) {
+    if (!_.isEqual(geocoders, routeLocations)) {
+      let fn;
+      if (geocoders.some(loc => loc.center)) {
+        // Set some temporary markers
+        fn = () =>
+          setTemporaryMarker(
+            map,
+            geocoders
+              .filter(
+                loc =>
+                  loc.center &&
+                  !routeLocations.find(location =>
+                    _.isEqual(location?.center, loc?.center)
+                  )
+              )
+              .map(loc => [loc.center.lng, loc.center.lat])
+          );
+      } else {
+        fn = () => removeMarkerLayer(map, TEMPORARY_MARKER);
+      }
+      if (!map.isStyleLoaded()) {
+        waitForStyleUpdate(map, fn);
+      } else {
+        fn();
+      }
+    }
+  }
 
   let route;
 
@@ -94,12 +136,33 @@
       geocoders = geocoders.map(g =>
         g.id === id ? { ...g, center, locationText: placeName } : g
       );
+      // Remove focus
+      let geocoderEl = document.getElementById(id);
+      geocoderEl = geocoderEl.getElementsByClassName(
+        'mapboxgl-ctrl-geocoder--input'
+      )[0];
+      focusedGeocoderStore.set(null);
+      removeFocusedClass(id);
+      geocoderEl.blur();
     });
     geocoder.on('clear', e => {
       geocoders = geocoders.map(g =>
         g.id === id ? { ...g, center: null, locationText: '' } : g
       );
+      // Remove focus
+      // TODO This timeout is a hack to counter the fact that clicking the clear button focuses the input
+      setTimeout(() => {
+        let geocoderEl = document.getElementById(id);
+        geocoderEl = geocoderEl.getElementsByClassName(
+          'mapboxgl-ctrl-geocoder--input'
+        )[0];
+        focusedGeocoderStore.set(null);
+        removeFocusedClass(id);
+        geocoderEl.blur();
+      }, 150);
     });
+    // Reset text and events on new geocoders
+    setGeocoderText();
   };
 
   const setFocusedClass = id => {
@@ -120,6 +183,38 @@
     el.classList.add('unfocused-input');
   };
 
+  const onBlurInput = e => {
+    const clickedMap = [...(e?.relatedTarget?.classList ?? [])].includes(
+      'mapboxgl-canvas'
+    );
+    // TODO See other note on clear geocoder: clicking the clear button focuses the input, so with the other hack
+    // it will cause flashing if we don't prevent removing focus here
+    const clickedClear = [...(e?.relatedTarget?.classList ?? [])].includes(
+      'mapboxgl-ctrl-geocoder--button'
+    );
+    if (!clickedMap && !clickedClear) {
+      $focusedGeocoderStore && focusedGeocoderStore.set(null);
+    }
+    // If the map is clicked, the lastClickedLocationStore will update before setting focusedGeocoderStore to null
+  };
+  lastClickedLocationStore.subscribe(value => {
+    if ($focusedGeocoderStore) {
+      geocoders = geocoders
+        .filter(g => g.id !== $focusedGeocoderStore)
+        .concat([
+          {
+            id: $focusedGeocoderStore,
+            locationText: `${value.lat}, ${value.lng}`,
+            center: { lat: value.lat, lng: value.lng },
+          },
+        ])
+        .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      setGeocoderText();
+      focusedGeocoderStore.set(null);
+      lastClickedLocationStore.set(null);
+    }
+  });
+
   const setGeocoderText = () => {
     const inputs = document.getElementsByClassName(
       'mapboxgl-ctrl-geocoder--input'
@@ -128,6 +223,13 @@
     [...inputs].forEach((input, i) => {
       input.value = geocoders[i].locationText;
       input.addEventListener('focusin', () => setFocusedClass(geocoders[i].id));
+      input.addEventListener(
+        'focus',
+        () =>
+          $focusedGeocoderStore !== geocoders[i].id &&
+          focusedGeocoderStore.set(geocoders[i].id)
+      );
+      input.addEventListener('blur', e => onBlurInput(e));
     });
   };
 

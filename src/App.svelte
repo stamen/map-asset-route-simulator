@@ -14,6 +14,7 @@
     deviceSize as deviceSizeStore,
     map as mapStore,
     routingOptions as routingOptionsStore,
+    focusedGeocoder as focusedGeocoderStore,
   } from './stores';
   import { makeConfig } from './make-config';
   import { writeHash } from './query';
@@ -131,6 +132,11 @@
   let fullScreenLoading = { loading: false };
   fullScreenLoadingStore.subscribe(value => (fullScreenLoading = value));
 
+  let geocoderIsFocused = false;
+  focusedGeocoderStore.subscribe(value =>
+    value ? (geocoderIsFocused = true) : (geocoderIsFocused = false)
+  );
+
   $: {
     if (
       mapState ||
@@ -188,11 +194,20 @@
   {#if fullScreenLoading.loading}
     <Loader helperText={fullScreenLoading.helperText || null} />
   {/if}
+  {#if geocoderIsFocused} <div class="focus-overlay" />{/if}
 </main>
 
 <style>
   main {
     display: flex;
     height: 100%;
+  }
+
+  .focus-overlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: #666;
+    opacity: 50%;
   }
 </style>

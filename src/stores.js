@@ -87,3 +87,7 @@ let initialRoutingOptions = Object.keys(hashObj).reduce((acc, key) => {
 }, {});
 
 export const routingOptions = writable(initialRoutingOptions);
+
+// These stores work together to let you select a location on the map
+export const focusedGeocoder = writable(null);
+export const lastClickedLocation = writable(null);
