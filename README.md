@@ -59,6 +59,10 @@ Here, you can customize the following options:
   - `id`: a unique id
   - `name`: a display name
   - `route`: an array of locations (this is copied from the app in the appropriate format with the "Copy route" button)
+- `routeLineBuffer`: A list of buffers to either include or exclude symbol layers within a padded area around the routeline. Each buffer object requires the following keys:
+  - `type`: "include" or "exclude" for whether that symbol layer only shows up within or outside the buffer
+  - `padding`: this represents how far outside the route line itself the buffer extends in meters
+  - `layers`: this is an array of layer ids to apply to this buffer
 
 For more details on how these should look, see the example in [`src/config/local.example.js`](./src/config/local.example.js).
 
