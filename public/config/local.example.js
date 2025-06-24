@@ -87,6 +87,15 @@ const mapboxGlAccessToken = 'pk.123abc';
 //   zoom: 15,
 // };
 
+// Options for including and excluding symbol layers from a buffer around the route line
+// const routeLineBuffer = [
+//   {
+//     padding: 100,
+//     layers: ['poi-label'],
+//     type: 'exclude',
+//   },
+// ];
+
 export {
   mapboxGlAccessToken,
   //   devices,
@@ -96,4 +105,5 @@ export {
   //   routingOptions,
   //   maneuverOptions,
   //   speedOptions,
+  //   routeLineBuffer
 };
