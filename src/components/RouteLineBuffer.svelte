@@ -16,7 +16,7 @@
 
   let padding;
   let layerNames;
-  let includeExclude = 'include';
+  let includeExclude;
 
   let focusedPadding = false;
 
@@ -63,11 +63,13 @@
   $: if (routeLineBuffer) {
     padding = routeLineBuffer?.padding;
     layerNames = routeLineBuffer?.layers;
+    includeExclude = routeLineBuffer?.type;
   }
 
   $: if (!layerNames && padding === undefined) {
     layerNames = [''];
     padding = 10;
+    includeExclude = 'include';
   }
 
   const addLayer = () => (layerNames = layerNames.concat(['']));
