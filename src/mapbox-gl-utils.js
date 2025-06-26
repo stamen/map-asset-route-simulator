@@ -213,15 +213,36 @@ export const updateRouteLine = (
       const withinExp = ['case', ['within', polygonBuffer], ...setting];
 
       const nextLayers = layers.map(layer => {
-        const l = stylesheet.layers.find(v => v.id === layer);
+        let l = stylesheet.layers.find(v => v.id === layer);
+        l = JSON.parse(JSON.stringify(l));
 
-        // Delete the previous expression
-        if (!!l?.metadata?.routeLineBufferOriginalFilter) {
-          l.filter = l?.metadata?.routeLineBufferOriginalFilter;
-          delete l?.metadata?.routeLineBufferOriginalFilter;
+        // Set the filter to the original if available
+        if (
+          !!stylesheet?.metadata?.['stamen:routeLineBufferOriginalFilter']?.[
+            l.id
+          ]
+        ) {
+          l.filter =
+            stylesheet.metadata['stamen:routeLineBufferOriginalFilter'][l.id];
+        } else {
+          // Add to new relevant layers
+          if (!stylesheet.metadata) {
+            stylesheet.metadata = {
+              'stamen:routeLineBufferOriginalFilter': {},
+            };
+          }
+          if (
+            !stylesheet?.metadata?.['stamen:routeLineBufferOriginalFilter']?.[
+              l.id
+            ]
+          ) {
+            stylesheet.metadata['stamen:routeLineBufferOriginalFilter'][l.id] =
+              JSON.parse(JSON.stringify(l.filter));
+          }
         }
 
-        let existingFilter = l?.filter;
+        let existingFilter = JSON.parse(JSON.stringify(l?.filter));
+
         if (existingFilter && existingFilter[0] !== 'all') {
           existingFilter = ['all', existingFilter];
         }
@@ -232,14 +253,7 @@ export const updateRouteLine = (
 
         existingFilter = existingFilter.concat([withinExp]);
 
-        // Add to new relevant layers
-        if (layers.includes(l.id)) {
-          if (!l.metadata) {
-            l.metadata = {};
-          }
-          l.metadata.routeLineBufferOriginalFilter = l.filter;
-          l.filter = existingFilter;
-        }
+        l.filter = existingFilter;
 
         return l;
       });
