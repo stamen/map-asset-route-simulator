@@ -2,6 +2,7 @@
   "name": "map-asset-route-simulator",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "build": "rollup -c",
     "build-package": "rm -rf dist && rollup -c rollup.config.package.js",
